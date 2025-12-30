@@ -20,10 +20,16 @@
 
 #include "sa.h"
 
+#ifdef USEGPU
+#include "sa.gpusort.h"
+#else
+
 #ifdef __SSE2__
 #define VECTORIZED_MEM_CPY
 #include <emmintrin.h> // SSE2
-#endif
+#endif /* __SSE2__ */
+
+#endif /* USEGPU */
 
 /**************************************************************/
 
@@ -106,7 +112,7 @@ static BOOL newInsertionSort (char *b, mysize_t n, int s, int (*cmp)(const void 
   return clean ;
 } /* insertionSort */
 
-#ifndef GREGGPU
+#ifndef USEGPU
 /* recursivelly split the table
  * the partially sorted data oscillate between b and buf
  * they end up correctly in b because for small n
@@ -259,8 +265,8 @@ void saSort (BigArray aa, int type)
     newInsertionSort (cp, N, s, cmp) ;
   else
     {
-#ifdef GREGGPU
-      saGPUSort (cp, N, s, cmp) ;
+#ifdef USEGPU
+      saGPUSort (cp, N, type) ;
 #else
       char *buf = malloc (N * s) ;
       memcpy (buf, cp, N * s) ;

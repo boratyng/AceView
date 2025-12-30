@@ -27,10 +27,9 @@
 /* Examples:  sortalign -h */
 
 /***********************************************************************************/
-/*  Greg: uncomment this lines and edit the code at the very bottom of sa.sort.c and recompile sa.*.c */
-/* #define GREGGPU  */
+#define YANN
 
-#ifdef GREGGPU 
+#ifdef USEGPU
   #define NAGENTS 12
   #define NBLOCKS 12
 #else
@@ -47,7 +46,7 @@
 #include <zlib.h>
 #include <stdatomic.h>
 #include "../wsra/sra_read.h"
-
+#include "sa.common.h"
 
 
 
@@ -260,20 +259,6 @@ typedef struct pStruct {
   int wiggle_step ;
 } PP ;
 
-typedef struct codeWordsStruct {
-  unsigned int seed ; /* 32 bits = 16 bases, 2 bits per base */
-  int nam ; /* index in readDict or chromDict << 1 | (0x1 for minus words) */
-  int pos ;  /* bio coordinate of first letter of seed */
-  unsigned int intron ;
-} __attribute__((aligned(16))) CW ;
-
-typedef struct hitStruct {
-  unsigned int read ;  /* index in readDict */
-  unsigned int chrom ; /* index in chromDict << 1 | (0x1 if minus strand) */
-  unsigned int a1 ;  /* bio coordinates on chrom (base 1) */
-  unsigned int x1 ;  /* bio coordinate on read */
-} __attribute__((aligned(16))) HIT ;
-
 typedef struct countChromStruct {
   float weight ;
   int seeds, chrom ;
@@ -357,7 +342,6 @@ typedef struct cpuStatStruct {
 /* was 256 1024 4096 16384 */
 
 #define NTARGETREPEATBITS 5
-#define NSHIFTEDTARGETREPEATBITS 8
 
 #define mstep1 255
 #define mstep2 510
@@ -390,9 +374,6 @@ int saSpongeParserDirect (PP *pp) ;
 
 /* sa.sort.c */
 void saSort (BigArray aa, int type) ;
-/* sa.gpusort.c */
-void saGPUSort (char *cp, long int number_of_records, int size_of_record, int (*cmp)(const void *va, const void *vb)) ;
-
 /* sa.sam.c */
 int saSamExport (ACEOUT ao, const PP *pp, BB *bb) ;       
 ACEOUT saSamCreateFile (const PP *pp, BB *bb, AC_HANDLE h) ; 
