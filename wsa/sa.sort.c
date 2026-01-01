@@ -21,6 +21,7 @@
 #include "sa.h"
 
 #ifdef USEGPU
+#include <time.h>
 #include "sa.gpusort.h"
 #else
 
@@ -265,14 +266,27 @@ void saSort (BigArray aa, int type)
     newInsertionSort (cp, N, s, cmp) ;
   else
     {
+
+        struct timespec start, end;
+        double ellapsed;
+        int i;
+        timespec_get(&start, TIME_UTC);
+
+
 #ifdef USEGPU
-      saGPUSort (cp, N, type) ;
+        saGPUSort (cp, N, type) ;
 #else
       char *buf = malloc (N * s) ;
       memcpy (buf, cp, N * s) ;
       saSortDo (cp, N, s, buf, TRUE, cmp) ;
       free (buf) ;
 #endif
+
+      timespec_get(&end, TIME_UTC);
+      ellapsed = (double)(end.tv_sec - start.tv_sec) +
+          (double)(end.tv_nsec - start.tv_nsec) / 1000000000.0;
+      fprintf(stderr, "Sorted %d elements in %f seconds (type: %d)\n", N, ellapsed, type);
+
     }
 }/* saSsort */
 
