@@ -272,7 +272,7 @@ int saSort (BigArray aa, int type)
 
 
 #ifdef USEGPU
-	if (type < 3 && N > (1<<12))
+   if (type < 2 /*&& N > (1<<12) */)
 	  {
 	    usedGPU = 1 ;
 	    saGPUSort (cp, N, type) ;
