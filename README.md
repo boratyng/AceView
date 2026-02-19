@@ -14,10 +14,10 @@ sortalign -x IDX -i forward.fastq.gz+reverse.fastq.gz -o results
 sortalign -x IDX -i forward.fastq.gz+reverse.fastq.gz -o results --sam
 # Multiple runs
 sortalign -x IDX -i forward.fastq.gz+reverse.fastq.gz,f1.fastq.gz+f2.fastq.gz -o results
-# Report target coverage and intron support
-sortalign -x IDX -i forward.fastq.gz+reverse.fastq.gz,f1.fastq.gz+f2.fastq.gz -o results --wiggle --intron
+# Report target coverage
+sortalign -x IDX -i forward.fastq.gz+reverse.fastq.gz,f1.fastq.gz+f2.fastq.gz -o results --wiggle
 # If you do not need alignments
-sortalign -x IDX -i forward.fastq.gz+reverse.fastq.gz,f1.fastq.gz+f2.fastq.gz -o results --wiggle --intron --noalign
+sortalign -x IDX -i forward.fastq.gz+reverse.fastq.gz,f1.fastq.gz+f2.fastq.gz -o results --wiggle --noalign
 ```
 
 ## User's guide
@@ -53,7 +53,7 @@ One can cache SRA reads on the local disk with `--sraCaching` option.
 
 The `-o` option specifies a path to the output directory. By default `sortalign` reports alignments in its internal format. To request the SAM report, use `--sam` option. `--gzo` will gzip output files.
 
-You can also generate target coverage wiggles in UCSC format with `--wiggles` and intron support with `--intron`.
+You can also generate target coverage wiggles in UCSC format with `--wiggles`.
 ```
-sortalign -x IDX -i SRR24511885 -o results --wiggle --intron
+sortalign -x IDX -i SRR24511885 -o results --wiggle
 ```
