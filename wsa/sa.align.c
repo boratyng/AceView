@@ -1400,41 +1400,54 @@ static void alignAdjustExons (const PP *pp, BB *bb, Array bestAp, Array aa, Arra
 		  if (vp[1].chain == chain)  /* try to adjust on gt_ag */ 
 		    {
 		      int du0 = vp[1].x1 - vp->x2 - 1 ;
+		      int da0 = vp[1].a1 - vp->a2 - 1 ;
 		      int gap = 0, gap2 = 0, shift = 0 ;
-		      const char *cq1 = arrp (dnaG, vp->a2 - 1, char) ;  /* last base of first exon */
-		      const char *cr1 = arrp (dnaG, vp[1].a1 - 1, char) ; /* first base of second exon */
-		      for (gap2 = 0 ; gap2 <= 6 ; gap2++)
-			{ /* try gaps of successive size 0, 1, -1, 2, -2 , 3 , -3 looking for gt-ag */
-			  gap =  (1 - 2 * (gap2 & 0x1)) * (gap2 >> 1) ;
-			  for (shift = -3 ; shift < du0 + 3 ; shift++ )
+		      if (du0 > 0)
+			{
+			  const char *cq1 = arrp (dnaG, vp->a2 - 1, char) ;  /* last base of first exon */
+			  const char *cr1 = arrp (dnaG, vp[1].a1 - 1, char) ; /* first base of second exon */
+			  shift = du0 ;
+
+			  if (da0 - du0 > 20)  /* do not search for introns < 20 bases */
 			    {
-			      const char *cq2 = cq1 + shift + 1 ; /* if shift == 0, first base of intron */
-			      const char *cr2 = cr1 + shift - 1 - du0 - gap ; /* if !shift && !gap, last base of intron */ 
-			      if (cq2[0] == G_  && cq2[1] == T_ && cr2[-1] == A_ && cr2[0] == G_)
-				goto foundTrueIntron ;
+			      for (gap2 = 0 ; gap2 <= 6 ; gap2++)
+				{ /* try gaps of successive size 0, 1, -1, 2, -2 , 3 , -3 looking for gt-ag */
+				  gap =  (1 - 2 * (gap2 & 0x1)) * (gap2 >> 1) ;
+				  for (int pass = 0 ; pass < 2 ; pass++)
+				    for (shift = -3 ; shift <= du0 + 3 ; shift++ )
+				    {
+				      if (pass == 0 && (shift < 0  || pass > du0)) continue ;
+				      if (pass == 1 && (shift >= 0  && pass <= du0)) continue ;
+				      const char *cq2 = cq1 + shift + 1 ; /* if shift == 0, first base of intron */
+				      const char *cr2 = cr1 + shift - 1 - du0 - gap ; /* if !shift && !gap, last base of intron */ 
+				      if (cq2[0] == G_  && cq2[1] == T_ && cr2[-1] == A_ && cr2[0] == G_)
+					goto foundTrueIntron ;
+				    }
+				}
 			    }
+			  shift = du0 ; gap = 0 ;  /* failed to locate a gt_ag */			
+			foundTrueIntron:
+			  vp->x2 += shift ;  /* adjust the right coordinates of the first exon */
+			  vp->a2 += shift ;
+			  if (shift < 0)
+			    {  /* remove a few bases from the first exon */
+			      jj += shift ;
+			      cp += shift ;
+			    }
+			  else if (shift > 0)
+			    {  /* copy a few more bases extending the first exon */
+			      cp = arrayp (dnaI, jj + shift + 1, char) ; /* make room */
+			      cp = arrayp (dnaI, jj, char) ;
+			      memcpy (cp, cq1 + 1, shift)  ;
+			      jj += shift ;
+			      cp += shift ;
+			    }
+			  vp[1].x1 += shift - du0 - gap ;  /* adjust the left coordinates of the second exon */
+			  vp[1].a1 += shift - du0 - gap ; /* do not copy dna, this will be handled at the next iteration */
 			}
-		    foundTrueIntron:
-		      vp->x2 += shift ;  /* adjust the right coordinates of the first exon */
-		      vp->a2 += shift ;
-		      if (shift < 0)
-			{  /* remove a few bases from the first exon */
-			  jj += shift ;
-			  cp += shift ;
-			}
-		      else if (shift > 0)
-			{  /* copy a few more bases extending the first exon */
-			  cp = arrayp (dnaI, jj + shift + 1, char) ; /* make room */
-			  cp = arrayp (dnaI, jj, char) ;
-			  memcpy (cp, cq1 +1, shift)  ;
-			  jj += shift ;
-			  cp += shift ;
-			}
-		      vp[1].x1 += shift - du0 - gap ;  /* adjust the left coordinates of the second exon */
-		      vp[1].a1 += shift - du0 - gap ; /* do not copy dna, this will be handled at the next iteration */
 		    }
+		  zp.x2 = vp->x2 ;
 		}
-	      zp.x2 = vp->x2 ;
 	      zp.a2 = jj ;
 	      arrayMax (dnaI) = jj ;
 	      /* add 100 bases to the right */
@@ -1450,96 +1463,116 @@ static void alignAdjustExons (const PP *pp, BB *bb, Array bestAp, Array aa, Arra
 	      /* align the read on the genomic image of the transcript */
 	      zp.errors = errors ;
 	      arrayMax (zp.errors) = 0 ;
-	      if (1)
-	      {
-		int x2 = zp.x2,  a2 = zp.a2 ;
-		aceDnaDoubleTrackErrors (dnaShort, &(zp.x1), &(zp.x2), TRUE   /* isDown = TRUE */
-					 , dnaI, 0, &(zp.a1), &(zp.a2)
-					 , 0, zp.errors, maxJump, -3, TRUE, 0) ; /* bio coordinates, extend right */
-		if (zp.x2 < x2 - 50)
-		  {
-		    zp.x2 = x2 ; zp.a2 = a2 ;
-		    arrayMax (zp.errors) = 0 ;
-		    aceDnaDoubleTrackErrors (dnaShort, &(zp.x1), &(zp.x2), TRUE   /* isDown = TRUE */ 
-					     , dnaI, 0, &(zp.a1), &(zp.a2)
-					     , 0, zp.errors, maxJump2, -1, FALSE, 0) ; /* bio coordinates, jump 8 but do not extend */
-		  }
-	      }
-	      alignClipErrorLeft (&zp, pp->errCost) ;
-	      alignClipErrorRight (&zp, pp->errCost) ;
-	      /* remap */
-	      int ja, dda = 0 ;
-	      for (vp = up, ja = 1 ; vp->chain == chain || vp->chain == -1 ; vp++)
+
+	      int x1 = zp.x1 ;
+	      int x2 = zp.x2,  a2 = zp.a2 ;
+	      aceDnaDoubleTrackErrors (dnaShort, &(zp.x1), &(zp.x2), TRUE   /* isDown = TRUE */
+				       , dnaI, 0, &(zp.a1), &(zp.a2)
+				       , 0, zp.errors, maxJump, -3, TRUE, 0) ; /* bio coordinates, extend right */
+	      if (zp.x2 < x2 - 50)
 		{
-		  int dz = keySet (ks, ja)  ;
-		  int j = 0 ;
-		  int del = 0, ins = 0, sub = 0 ;
-		  da = vp->a2 - vp->a1 + 1 ;
-		  if (vp->chain == -1 || da < 1) continue ;
-		  if (vp->a1 > zp.a2 + dz)
-		    { vp->chain = -1 ; continue ; }
-		  if (vp->a1 < zp.a1 + dz) { vp->a1 = zp.a1 + dz ; vp->x1 = zp.x1 ; }
-		  if (vp->a2 > zp.a2 + dz) { vp->a2 = zp.a2 + dz ; vp->x2 = zp.x2 ; }
-		  
-		  if (vp->errors)
-		    arrayMax (vp->errors) = 0 ; 
-		  for (ie = 0 ; ie < arrayMax (zp.errors) ; ie++)
+		  zp.x2 = x2 ; zp.a2 = a2 ;
+		  arrayMax (zp.errors) = 0 ;
+		  aceDnaDoubleTrackErrors (dnaShort, &(zp.x1), &(zp.x2), TRUE   /* isDown = TRUE */ 
+					   , dnaI, 0, &(zp.a1), &(zp.a2)
+					   , 0, zp.errors, maxJump2, -1, FALSE, 0) ; /* bio coordinates, jump 8 but do not extend */
+		}
+
+	      if (zp.x1 < x1 + 10 && zp.x2 > x2 - 10)
+		{ /* success, otherwise stay on previous results */
+		  alignClipErrorLeft (&zp, pp->errCost) ;
+		  alignClipErrorRight (&zp, pp->errCost) ;
+		  /* remap */
+		  int ja, dda = 0 ;
+		  for (vp = up, ja = 1 ; vp->chain == chain || vp->chain == -1 ; vp++)
 		    {
-		      ep = arrp (zp.errors, ie, A_ERR) ;
-		      int es = ep->iShort + 1 ;
-		      int dx1 = 0, da = 0 ;  
-		      switch (ep->type)
-			{  /* locate erroneous base */
-			case INSERTION: dx1 = 0 ; da = 1 ; break ;
-			case INSERTION_DOUBLE: dx1 = 1 ; da = 2 ; break ;
-			case INSERTION_TRIPLE: dx1 = 2 ; da = 3 ; break ;
-			case TROU: dx1 = -1 ; da = -1 ; break ;
-			case TROU_DOUBLE: dx1 = -1 ; da = -2 ; break ;
-			case TROU_TRIPLE: dx1 = -1; da = -3 ; break ;
-			default : break ;
-			}
-		      if (es == vp->x1 && dx1 == -1)
-			{ vp->a1++ ; continue ; }
-		      if (es + dx1 >= vp->x1)
+		      int dz = keySet (ks, ja)  ;
+		      int j = 0 ;
+		      int del = 0, ins = 0, sub = 0 ;
+		      da = vp->a2 - vp->a1 + 1 ;
+		      if (vp->chain == -1 || da < 1) continue ;
+		      if (vp->a1 > zp.a2 + dz)
+			{ vp->chain = -1 ; continue ; }
+		      if (vp->a1 < zp.a1 + dz) { vp->a1 = zp.a1 + dz ; vp->x1 = zp.x1 ; }
+		      if (vp->a2 > zp.a2 + dz) { vp->a2 = zp.a2 + dz ; vp->x2 = zp.x2 ; }
+		      
+		      if (vp->errors)
+			arrayMax (vp->errors) = 0 ; 
+		      for (ie = 0 ; ie < arrayMax (zp.errors) ; ie++)
 			{
-			  if (es > vp->x2) break ;
-			  if (! vp->errors)
-			    vp->errors = arrayHandleCreate (8, A_ERR, bb->h) ;
-			  A_ERR *eq = arrayp (vp->errors, j++, A_ERR) ;
-			  *eq = *ep ;
-			  eq->iLong += dz ; /* + dda ; */
+			  ep = arrp (zp.errors, ie, A_ERR) ;
+			  int es = ep->iShort + 1 ;
+			  int dx1 = 0, da = 0 ;  
 			  switch (ep->type)
-			    {
-			    case INSERTION: dda++ ; ins++ ; break ;
-			    case INSERTION_DOUBLE: dda+=2 ; ins += 2 ; break ;
-			    case INSERTION_TRIPLE: dda+=3 ; ins += 3 ; break ;
-			    case TROU: dda-- ; del++ ; break ;
-			    case TROU_DOUBLE: dda-=2 ; del += 2 ; break ;
-			    case TROU_TRIPLE: dda-=3 ; del += 3 ; break ;
-			    case ERREUR: sub++ ; break ;
+			    {  /* locate erroneous base */
+			    case INSERTION: dx1 = 0 ; da = 1 ; break ;
+			    case INSERTION_DOUBLE: dx1 = 1 ; da = 2 ; break ;
+			    case INSERTION_TRIPLE: dx1 = 2 ; da = 3 ; break ;
+			    case TROU: dx1 = -1 ; da = -1 ; break ;
+			    case TROU_DOUBLE: dx1 = -1 ; da = -2 ; break ;
+			    case TROU_TRIPLE: dx1 = -1; da = -3 ; break ;
 			    default : break ;
 			    }
+			  if (es == vp->x1 && dx1 == -1)
+			    { vp->a1++ ; continue ; }
+			  if (es + dx1 >= vp->x1)
+			    {
+			      if (es > vp->x2) break ;
+			      if (! vp->errors)
+				vp->errors = arrayHandleCreate (8, A_ERR, bb->h) ;
+			      A_ERR *eq = arrayp (vp->errors, j++, A_ERR) ;
+			      *eq = *ep ;
+			      eq->iLong += dz ; /* + dda ; */
+			      switch (ep->type)
+				{
+				case INSERTION: dda++ ; ins++ ; break ;
+				case INSERTION_DOUBLE: dda+=2 ; ins += 2 ; break ;
+				case INSERTION_TRIPLE: dda+=3 ; ins += 3 ; break ;
+				case TROU: dda-- ; del++ ; break ;
+				case TROU_DOUBLE: dda-=2 ; del += 2 ; break ;
+				case TROU_TRIPLE: dda-=3 ; del += 3 ; break ;
+				case ERREUR: sub++ ; break ;
+				default : break ;
+				}
+			    }
 			}
+		      int dd = (vp->x2 - vp->x1 + 1 + del) - ((vp->a1 < vp->a2 ? vp->a2 - vp->a1 : vp->a1 - vp->a2) + 1 + ins) ;
+		      
+		      if (dd < 0) vp->x2 += dd ;
+		      if (dd > 0) vp->a2 -= dd ;
+		      
+		      ja++ ;
+		      vp->nErr = vp->errors ? arrayMax (vp->errors) : 0 ;
+		      vp->nMID = del + ins + sub ;
 		    }
-		  int dd = (vp->x2 - vp->x1 + 1 + del) - ((vp->a1 < vp->a2 ? vp->a2 - vp->a1 : vp->a1 - vp->a2) + 1 + ins) ;
-
-		  if (dd < 0) vp->x2 += dd ;
-		  if (dd > 0) vp->a2 -= dd ;
-
-		  ja++ ;
-		  vp->nErr = vp->errors ? arrayMax (vp->errors) : 0 ;
-		  vp->nMID = del + ins + sub ;
 		}
 	    }
-	  /*
-	  for (vp = up ; vp->chain == chain ; vp++)
-	    {
-	      if (vp->x1 < 1)
-		{ int dx = 1 - vp->x1 ; vp->x1 += dx ; vp->a1 += (vp->a1 < vp->a2 ? dx : -dx) ;}
-	      if (vp->x2 > arrayMax (dna))
-		{ int dx = vp->x2 - arrayMax(dna) ; vp->x2 -= dx ; vp->a2 -= (vp->a1 < vp->a2 ? dx : -dx) ;}
-	    }
-	  */
+
+	  /* merge */
+	  int k ;
+	  for (k = 0, vp = up ; (k < arrayMax (aa) - 1) && (vp->chain == chain || vp->chain == -1) ; k++, vp++)
+	    if (vp[0].chain == chain && vp[1].chain == chain && vp[1].x1 == vp[0].x2 + 1 && vp[1].a1 == vp[0].a2 + 1)
+	      {  /* this happens in rafia */
+		vp[0].x2 = vp[1].x2 ;
+		vp[0].a2 = vp[1].a2 ;
+		if (! vp[0].errors)
+		  {
+		    vp[0].errors = vp[1].errors ;
+		    vp[0].nErr = vp[1].nErr ;
+		  }
+		else if (vp[1].errors)
+		  {
+		    int iMax = arrayMax (vp[0].errors), j, jMax = arrayMax (vp[1].errors) ;
+		    for (j = 0 ; j < jMax ; j++)
+		      array (vp[0].errors, iMax + j, A_ERR) = array (vp[1].errors, j, A_ERR) ;
+		    vp[0].nErr = iMax + jMax ;
+		  }
+
+
+		vp[1].chain = -1 ;
+		vp[1].nErr = 0 ; vp[1].errors = 0 ;
+	      }
+
 	  if (! isDown)
 	    {
 	      int nvp = 0 ;
@@ -1548,7 +1581,7 @@ static void alignAdjustExons (const PP *pp, BB *bb, Array bestAp, Array aa, Arra
 		  int dummy = vp->a1 ; vp->a1 = vp->a2 ; vp->a2 = dummy ;
 		  dummy = vp->x1 ; vp->x1 = lnShort - vp->x2 + 1 ; vp->x2 = lnShort - dummy + 1 ;
 		  nvp++ ;
-
+		  
 		  /* flip the error positions */
 		  if (vp->nErr)
 		    {
@@ -1572,7 +1605,7 @@ static void alignAdjustExons (const PP *pp, BB *bb, Array bestAp, Array aa, Arra
 	    }
 	}
     }
-
+  
   ac_free(h1) ;
   
 } /* alignAdjustExons */
@@ -2256,12 +2289,40 @@ static void  alignDoRegisterOnePair (const PP *pp, BB *bb, BigArray aaa, Array a
 	  {
 	    for (jj = ii + 1, bp = ap + 1 ; jj < iMax && ap->chrom == bp->chrom && bp->read == read && bp->chain == ap->chain && bp->x1 == ap->x2 + 1 ; jj++, bp++)
 	      { /* found one intron */
-		INTRON *zp = arrayp (bb->confirmedIntrons, arrayMax (bb->confirmedIntrons), INTRON) ;
+
 		int chrom = ap->chrom ;
 		int a1 = ap->a1 ;
 		int a2 = ap->a2 ;
+		int x2 = ap->x2 ;
 		int b1 = bp->a1 ;
-		    
+		int y1 = bp->x1 ;
+		BOOL ok = TRUE ;
+		
+		if (ap->errors)
+		  {
+		    int ie, ieMax = arrayMax (ap->errors) ;
+		    for (ie = 0 ; ok && ie < ieMax ; ie++)
+		      {
+			A_ERR *ep = arrp (ap->errors, ie, A_ERR) ;
+			if (ep->iShort > x2 - 6 && ep->iShort <= x2)
+			  ok = FALSE ;
+		      }
+		    if (! ok) continue ;
+		  }
+		if (bp->errors)
+		  {
+		    int ie, ieMax = arrayMax (bp->errors) ;
+		    for (ie = 0 ; ok && ie < ieMax ; ie++)
+		      {
+			A_ERR *ep = arrp (bp->errors, ie, A_ERR) ;
+			if (ep->iShort >= y1 && ep->iShort <= y1 + 6)
+			  ok = FALSE ;
+		      }
+		    if (! ok) continue ;
+		  }
+
+		
+		INTRON *zp = arrayp (bb->confirmedIntrons, arrayMax (bb->confirmedIntrons), INTRON) ;
 		BOOL isReadDown = a1 < a2 ? TRUE : FALSE ;
 
 		zp->run = bb->run ;
