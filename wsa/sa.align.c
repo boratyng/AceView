@@ -200,7 +200,7 @@ static BOOL alignExtendHit (Array dna, Array dnaG, Array dnaGR, Array err
   int a1 = *a1p, a2 = *a2p ;
   arrayMax (err) = 0 ;
 
-  errMax = isIntron ? 0 : errMax ;
+  errMax = (1 || isIntron) ? 0 : errMax ;
   
   
 
@@ -1307,7 +1307,8 @@ static void alignAdjustExons (const PP *pp, BB *bb, Array bestAp, Array aa, Arra
       int k = array (bestAp, ic, int) ;
       if (!k) continue ;
       up = vp = arrp (aa, k - 1, ALIGN) ; 
-
+      int oldnErr = 0 ;
+      
       chain = up->chain ;
       if (up->chrom != chromA)
 	{
@@ -1328,7 +1329,8 @@ static void alignAdjustExons (const PP *pp, BB *bb, Array bestAp, Array aa, Arra
 	  nErr += vp->nErr ;
 	  nAli += da > 0 ? da + 1 : -da + 1 ;
 	}
-
+      oldnErr = nErr ;
+      
       if (nErr || nAli < lnShort)
 	{
 	  KEYSET ks = keySetHandleCreate (h1) ;
@@ -1402,7 +1404,7 @@ static void alignAdjustExons (const PP *pp, BB *bb, Array bestAp, Array aa, Arra
 		      int du0 = vp[1].x1 - vp->x2 - 1 ;
 		      int da0 = vp[1].a1 - vp->a2 - 1 ;
 		      int gap = 0, gap2 = 0, shift = 0 ;
-		      if (du0 > 0)
+		      if (du0 > 0)   /* t1840 problem */
 			{
 			  const char *cq1 = arrp (dnaG, vp->a2 - 1, char) ;  /* last base of first exon */
 			  const char *cr1 = arrp (dnaG, vp[1].a1 - 1, char) ; /* first base of second exon */
@@ -1413,7 +1415,7 @@ static void alignAdjustExons (const PP *pp, BB *bb, Array bestAp, Array aa, Arra
 			      for (gap2 = 0 ; gap2 <= 6 ; gap2++)
 				{ /* try gaps of successive size 0, 1, -1, 2, -2 , 3 , -3 looking for gt-ag */
 				  gap =  (1 - 2 * (gap2 & 0x1)) * (gap2 >> 1) ;
-				  for (int pass = 0 ; pass < 2 ; pass++)
+				  for (int pass = 0 ; gap < du0 - shift && pass < 2 ; pass++)
 				    for (shift = -3 ; shift <= du0 + 3 ; shift++ )
 				    {
 				      if (pass == 0 && (shift < 0  || pass > du0)) continue ;
@@ -1477,8 +1479,8 @@ static void alignAdjustExons (const PP *pp, BB *bb, Array bestAp, Array aa, Arra
 					   , dnaI, 0, &(zp.a1), &(zp.a2)
 					   , 0, zp.errors, maxJump2, -1, FALSE, 0) ; /* bio coordinates, jump 8 but do not extend */
 		}
-
-	      if (zp.x1 < x1 + 10 && zp.x2 > x2 - 10)
+	      zp.nErr = arrayMax (zp.errors) ;
+	      if (zp.x1 < x1 + 10 && zp.x2 > x2 - 10 && zp.nErr <= oldnErr+3)
 		{ /* success, otherwise stay on previous results */
 		  alignClipErrorLeft (&zp, pp->errCost) ;
 		  alignClipErrorRight (&zp, pp->errCost) ;

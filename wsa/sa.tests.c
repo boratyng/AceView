@@ -72,7 +72,7 @@ void saCreateRandomGenome (PP *pp, int nMb)
       memcpy (mrna2, mrna1, da+jj+1) ;
       int kk = 5, i, k, dx1, dx2 ;
       /* introduce kk substitutions */
-      if (1)
+      if (0)
 	for (k = 0 ; k < kk ; k++)
 	  {
 	    int x1 = randint() % da ;
