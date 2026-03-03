@@ -1415,7 +1415,7 @@ static void alignAdjustExons (const PP *pp, BB *bb, Array bestAp, Array aa, Arra
 			      for (gap2 = 0 ; gap2 <= 6 ; gap2++)
 				{ /* try gaps of successive size 0, 1, -1, 2, -2 , 3 , -3 looking for gt-ag */
 				  gap =  (1 - 2 * (gap2 & 0x1)) * (gap2 >> 1) ;
-				  for (int pass = 0 ; gap < du0 - shift && pass < 2 ; pass++)
+				  for (int pass = 0 ; gap <= du0 - shift && pass < 2 ; pass++)
 				    for (shift = -3 ; shift <= du0 + 3 ; shift++ )
 				    {
 				      if (pass == 0 && (shift < 0  || pass > du0)) continue ;
