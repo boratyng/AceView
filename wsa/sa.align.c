@@ -1454,15 +1454,6 @@ static void alignAdjustExons (const PP *pp, BB *bb, Array bestAp, Array aa, Arra
 		}
 	      zp.a2 = jj ;
 	      arrayMax (dnaI) = jj ;
-	      /* add 100 bases to the right */
-	      int shift = (vp->a2 < arrayMax (dnaG) - 100 ? 100 :  arrayMax (dnaG) - vp->a2) ;
-	      cp = arrayp (dnaI, jj + shift + 1, char) ; /* make room */
-	      cp = arrayp (dnaI, jj, char) ;
-	      const char *cq1 = arrp (dnaG, vp->a2, const char) ;
-	      memcpy (cp, cq1, shift) ;
-	      jj += shift ;
-	      cp += shift ;
-	      *cp = 0 ;
 
 	      /* align the read on the genomic image of the transcript */
 	      zp.errors = errors ;
