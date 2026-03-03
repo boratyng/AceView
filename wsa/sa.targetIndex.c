@@ -619,7 +619,7 @@ void saTargetIndexCreate (PP *pp)
 
   /* copy the actual config file used to create the index */
   if (pp->tConfigFileName)
-    filFileCopy (pp->tConfigFileName, hprintf(h, "%s/tConfig\n", pp->indexName)) ;
+    filFileCopy (pp->tConfigFileName, hprintf(h, "%s/tConfig", pp->indexName)) ;
   else
     (void) system (hprintf(h, "touch %s/tConfig\n", pp->indexName)) ;
   ac_free (h) ;

@@ -1299,7 +1299,7 @@ static void alignAdjustExons (const PP *pp, BB *bb, Array bestAp, Array aa, Arra
   AC_HANDLE h1 = ac_new_handle () ;
   Array dnaR = 0 ;
   Array dnaG = 0 ;
-  
+  Array original = arrayHandleCreate (arrayMax(aa), ALIGN, h1) ;   
 
   for (int ic = 1 ; ic < arrayMax (bestAp) ; ic++)
     {
@@ -1374,7 +1374,7 @@ static void alignAdjustExons (const PP *pp, BB *bb, Array bestAp, Array aa, Arra
 	    }
 	  if (1)
 	    {
-	      int jj = up->a1 > 100 ? 100 : up->a1 - 1 ;
+	      int iOriginal, jj = up->a1 > 100 ? 100 : up->a1 - 1 ;
 	      keySet (ks, ia++) = up->a1 - jj ;
 	      cp = arrp (dnaI, 0, char) ;
 	      if (jj)
@@ -1388,8 +1388,10 @@ static void alignAdjustExons (const PP *pp, BB *bb, Array bestAp, Array aa, Arra
 	      memset (&zp, 0, sizeof(zp)) ;
 	      zp.x1 = up->x1 ;
 	      zp.a1 = jj + 1 ;
-	      for (vp = up ; vp->chain == chain || vp->chain == -1 ; vp++)
+	      arrayMax (original) = 0 ;
+	      for (iOriginal = 0, vp = up ; vp->chain == chain || vp->chain == -1 ; vp++, iOriginal++)
 		{
+		  array (original, iOriginal, ALIGN) = *vp ;
 		  da = vp->a2 - vp->a1 + 1 ;
 		  if (vp->chain == -1 || da < 1) continue ;
 		  keySet (ks, ia++) = vp->a1 - jj - 1 ;
@@ -1547,6 +1549,11 @@ static void alignAdjustExons (const PP *pp, BB *bb, Array bestAp, Array aa, Arra
 		      vp->nErr = vp->errors ? arrayMax (vp->errors) : 0 ;
 		      vp->nMID = del + ins + sub ;
 		    }
+		}
+	      else
+		{ /* reestablish previous coordinates */
+		  for (iOriginal = 0, vp = up ; vp->chain == chain || vp->chain == -1 ; vp++, iOriginal++)
+		    *vp = array (original, iOriginal, ALIGN) ;
 		}
 	    }
 

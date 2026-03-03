@@ -27,16 +27,18 @@ void saCreateRandomGenome (PP *pp, int nMb)
   int iMax = 10000* nMb ;
   int ii, jj ;
   char *atgc = "atgc" ;
+  filCreateDir (pp->outFileName) ;
   ACEOUT aog = aceOutCreate (pp->outFileName, "/random.genome.fasta", 0, h) ;
   ACEOUT aom = aceOutCreate (pp->outFileName, "/random.mrna.fasta", 0, h) ;
   ACEOUT aof = aceOutCreate (pp->outFileName, "/random.gtf", 0, h) ;
   ACEOUT aoc = aceOutCreate (pp->outFileName, "/random.tConfig", 0, h) ;
   
-  if (iMax < 0) messcrash ("nMb = %d too large in saCreateRandomIndex", nMb) ;
+  if (iMax < 0) messcrash ("nMb = %d negative in saCreateRandomIndex", nMb) ;
 
   char buf[iMax+10] ;
   char mrna1[1200] = {0} ;
   char mrna2[1200] = {0} ;
+
 
   aceOutf (aoc, "G\t%s/random.genome.fasta\n", pp->outFileName) ;
   aceOutf (aoc, "I\t%s/random.gtf\n", pp->outFileName) ;
@@ -81,7 +83,7 @@ void saCreateRandomGenome (PP *pp, int nMb)
 	    mrna2[x2] = 'g' ;
 	  }
       /* introduce kk deletions */
-      if (0)
+      if (1) 
 	for (i = dx1 = dx2 = 0 ; i <= da ; i++)  /* include the therminal zero: i <= da */
 	  {
 	    int x1 = randint() % 100 ;

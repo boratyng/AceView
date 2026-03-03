@@ -326,26 +326,45 @@ void saIntronsOptimize (BB *bb, ALIGN *vp, ALIGN *wp, Array dnaG)
   int i, j, nE ;
   int bestN, bestI = -1, bestJ = -1 ;
   int dy = vp->x2 - wp->x1 + 1 ;  /* dy > 0 recouvrement, dy < 0: trou dans le read */
-  int da = vp->a2 - wp->a1 ;      
   BOOL isDown = (vp->a1 < vp->a2 ? TRUE : FALSE ) ;
-  if (da < 5 && da > -5 && dy < 5 && dy > -5 && vp->chrom == wp->chrom)
+  int da = isDown ? vp->a2 - wp->a1 + 1: wp->a1 - vp->a2 + 1 ;
+  int day = dy - da ;
+  
+  if (0 && da < 4 && da > -4 && dy < 4 && dy > -4 && vp->chrom == wp->chrom)
     {
       /* merge the 2 alignments */
       vp->a2 = wp->a2 ;
       vp->x2 = wp->x2 ;
-      vp->nErr += wp->nErr ;
-      vp->errors = vp->errors ? vp->errors : wp->errors ;
-      if (vp->errors && vp->nErr)
-	epX = arrayp (vp->errors, vp->nErr - 1, A_ERR) ; /* the extra errors from wp are not copied, hence set to zero */
-      if (! vp->nErr)
+      if (dy || wp->nErr)
 	{
-	  vp->nErr = 1 ;
-	  vp->errors = arrayHandleCreate (20, A_ERR, bb->h) ;
-	  epX = arrayp (vp->errors, 0, A_ERR) ;
-	  epX->iShort = wp->x1 ;
-	  epX->iLong = wp->a1 ;
-	  epX->type = ERREUR ;
-	}	  
+	  if (! vp->errors)
+	    vp->errors = arrayHandleCreate (20, A_ERR, bb->h) ;
+	}
+      vp->nErr = arrayMax (vp->errors) ;
+      int dz = dy - (isDown ? da : -da) ;
+      if (dy) /* create an error at th new junction */
+	{
+	  epX = arrayp (vp->errors, vp->nErr++, A_ERR) ;
+	  epX->iShort = wp->x1 - 1 ;
+	  epX->iLong = wp->a1 - 1 ;
+	  switch (dy)
+	    {
+	    case -1: epX->type = TROU ; break ;
+	    case -2: epX->type = TROU_DOUBLE ; break ;
+	    case -3: epX->type = TROU_TRIPLE ; break ;
+	    case 1: epX->type = INSERTION ; break ;
+	    case 2: epX->type = INSERTION_DOUBLE ; break ;
+	    case 3: epX->type = INSERTION_TRIPLE ; break ;
+	    default:
+	    case 0: epX->type = ERREUR ; break ;
+	    }
+	}
+      if (wp->nErr)
+	{
+	  int ie ;
+	  for (ie = 0 ; ie < wp->nErr ; ie++)
+	    array (vp->errors, vp->nErr + ie, A_ERR) = array (wp->errors, ie, A_ERR) ;
+	}
       memset (wp, 0, sizeof (ALIGN)) ; nEy = 0 ;
       wp->chain = -1 ;
       return ;
@@ -391,7 +410,9 @@ void saIntronsOptimize (BB *bb, ALIGN *vp, ALIGN *wp, Array dnaG)
 	      cI++ ;
 	      for (int i = cJ + 1 ; i < nEy ; i++, cI++)
 		array (vp->errors, cI++, A_ERR) = array (wp->errors, i, A_ERR) ;
-	      vp->nErr = arrayMax (vp->errors) = i ;
+	      vp->nErr = arrayMax (vp->errors) = cI ;
+	      if (!vp->nErr)
+		array (vp->errors, vp->nErr++, A_ERR).type = ERREUR ;
 	      memset (wp, 0, sizeof (ALIGN)) ;
 	      wp->chain = -1 ; 
 	      return ;
@@ -746,7 +767,7 @@ void saIntronsOptimize (BB *bb, ALIGN *vp, ALIGN *wp, Array dnaG)
   dy = vp->x2 - wp->x1 + 1 ;
   da = vp->a2 - wp->a1 ;
 
-  if (da < 5 && da > -5 && dy < 5 && dy > -5 && vp->chrom == wp->chrom)
+  if (0 && da < 5 && da > -5 && dy < 5 && dy > -5 && vp->chrom == wp->chrom)
     {
       /* merge the 2 alignments */
       vp->a2 = wp->a2 ;
@@ -755,6 +776,9 @@ void saIntronsOptimize (BB *bb, ALIGN *vp, ALIGN *wp, Array dnaG)
       vp->errors = vp->errors ? vp->errors : wp->errors ;
       if (vp->errors && vp->nErr)
 	epX = arrayp (vp->errors, vp->nErr - 1, A_ERR) ;
+      if (!vp->nErr)
+	array (vp->errors, vp->nErr++, A_ERR).type = ERREUR ;
+
       memset (wp, 0, sizeof (ALIGN)) ;
       wp->chain = -1 ;
       return ;
