@@ -205,6 +205,7 @@ void newLocalCptErreur(Array longDna, int xl1, int xl2, int pol,
 		    Array shortDna, int xs1, int xs2, int pos, int sens,
 		    int *NNp, int *startp, int *stopp, int *recouvp, Array errArray) ;
 void aceDnaShowErr (Array err) ;
+#define showErr(_errArray) aceDnaShowErr(_errArray)
 
 /* the text values are filled in dnasubs.c
 

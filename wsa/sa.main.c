@@ -739,7 +739,7 @@ static void runErrorsCumulate (int run, Array runErrors, Array bb)
 static void reportRunErrors (const PP *pp, Array runStats, Array runErrors)
 {
   AC_HANDLE h = ac_new_handle () ;
-  ACEOUT ao = aceOutCreate (pp->outFileName, ".runErrors.tsf", 0, h) ;
+  ACEOUT ao = aceOutCreate (pp->outFileName, "errorProfile.tsf", 0, h) ;
   int type, run, runMax = arrayMax (runErrors) ;
 
   for (run = 1 ; run < runMax ; run++)

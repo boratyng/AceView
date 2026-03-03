@@ -83,7 +83,7 @@ void saCreateRandomGenome (PP *pp, int nMb)
 	    mrna2[x2] = 'g' ;
 	  }
       /* introduce kk deletions */
-      if (1) 
+      if (0) 
 	for (i = dx1 = dx2 = 0 ; i <= da ; i++)  /* include the therminal zero: i <= da */
 	  {
 	    int x1 = randint() % 100 ;
@@ -94,7 +94,7 @@ void saCreateRandomGenome (PP *pp, int nMb)
 	    mrna2[i] = mrna2[i + dx2] ;
 	  }
       /* introduce kk insertions */
-      if (0 )
+      if (1)
 	for (i = dx1 = dx2 = 0 ; i <= da ; i++)  /* include the therminal zero: i <= da */
 	  {
 	    int x1 = randint() % 100 ;

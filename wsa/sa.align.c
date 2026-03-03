@@ -200,7 +200,7 @@ static BOOL alignExtendHit (Array dna, Array dnaG, Array dnaGR, Array err
   int a1 = *a1p, a2 = *a2p ;
   arrayMax (err) = 0 ;
 
-  errMax = (1 || isIntron) ? 0 : errMax ;
+  errMax = (0 && isIntron) ? 0 : errMax ;
   
   
 
@@ -1497,8 +1497,8 @@ static void alignAdjustExons (const PP *pp, BB *bb, Array bestAp, Array aa, Arra
 		      if (vp->chain == -1 || da < 1) continue ;
 		      if (vp->a1 > zp.a2 + dz)
 			{ vp->chain = -1 ; continue ; }
-		      if (vp->a1 < zp.a1 + dz) { vp->a1 = zp.a1 + dz ; vp->x1 = zp.x1 ; }
-		      if (vp->a2 > zp.a2 + dz) { vp->a2 = zp.a2 + dz ; vp->x2 = zp.x2 ; }
+		      if (ja == 1) { vp->a1 = zp.a1 + dz ; vp->x1 = zp.x1 ; }
+		      if (ja == keySetMax (ks) - 1) { vp->a2 = zp.a2 + dz ; vp->x2 = zp.x2 ; }
 		      
 		      if (vp->errors)
 			arrayMax (vp->errors) = 0 ; 
@@ -1542,9 +1542,11 @@ static void alignAdjustExons (const PP *pp, BB *bb, Array bestAp, Array aa, Arra
 			}
 		      int dd = (vp->x2 - vp->x1 + 1 + del) - ((vp->a1 < vp->a2 ? vp->a2 - vp->a1 : vp->a1 - vp->a2) + 1 + ins) ;
 		      
-		      if (dd < 0) vp->x2 += dd ;
-		      if (dd > 0) vp->a2 -= dd ;
-		      
+		      if (0)
+			{
+			  if (dd < 0) vp->x2 += dd ;
+			  if (dd > 0) vp->a2 -= dd ;
+			}
 		      ja++ ;
 		      vp->nErr = vp->errors ? arrayMax (vp->errors) : 0 ;
 		      vp->nMID = del + ins + sub ;
@@ -2313,7 +2315,7 @@ static void  alignDoRegisterOnePair (const PP *pp, BB *bb, BigArray aaa, Array a
 		    for (ie = 0 ; ok && ie < ieMax ; ie++)
 		      {
 			A_ERR *ep = arrp (ap->errors, ie, A_ERR) ;
-			if (ep->iShort > x2 - 6 && ep->iShort <= x2)
+			if (ep->iShort > x2 - 6 && ep->iShort <= x2 + 6)
 			  ok = FALSE ;
 		      }
 		    if (! ok) continue ;
@@ -2324,7 +2326,7 @@ static void  alignDoRegisterOnePair (const PP *pp, BB *bb, BigArray aaa, Array a
 		    for (ie = 0 ; ok && ie < ieMax ; ie++)
 		      {
 			A_ERR *ep = arrp (bp->errors, ie, A_ERR) ;
-			if (ep->iShort >= y1 && ep->iShort <= y1 + 6)
+			if (ep->iShort >= y1 - 6 && ep->iShort <= y1 + 6)
 			  ok = FALSE ;
 		      }
 		    if (! ok) continue ;
