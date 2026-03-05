@@ -102,6 +102,8 @@ setenv SV     v71.81.18M.e4.W.feb22    # edited intron boundaries using the new 
 setenv SVlast v71.81.18M.e4.W.feb22
 setenv SV     v72.81.18M.e4.W.mars5    # edited del/ins using sa.test.c 
 setenv SVlast v72.81.18M.e4.W.mars5
+#setenv SV     v73.81.18M.e4.W.mars5    # favor the introns seeds by contructing immediatly clipped exons
+#setenv SVlast v73.81.18M.e4.W.mars5
 
 if ($SV == $SVlast) then
   \cp  /home/mieg/ace/bin.LINUX_4_OPT/sortalign bin/sortalign.$SV

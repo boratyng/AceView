@@ -13,6 +13,9 @@
  * to bing the aligner to the least buzy core
 */
 
+#ifdef __linux__
+/* ==================== LINUX ONLY ==================== */
+
 #include <dirent.h>
 #include <stdio.h>
 #include <sys/types.h>
@@ -28,11 +31,27 @@ typedef struct {
     unsigned long long user, nice, sys, idle, iowait, irq, softirq, steal, guest, guest_nice ;
 } cpu_times_t ;
 
-// Function to read /proc/stat into per-CPU times array (returns num_cpus read)
+// Function to read /proc/stat into per-CPU times array (returns num_cpus read)#include <stdio.h>
+#include <sys/resource.h>
+
+int get_max_threads_limit (void)
+{
+    struct rlimit rl;
+
+    if (getrlimit (RLIMIT_NPROC, &rl) == 0)
+      {
+        if (rl.rlim_cur == RLIM_INFINITY)
+	  return 99999 ;  // "unlimited" → return a very large number
+        else
+	  return (int)rl.rlim_cur ;    //soft limit
+      }
+    return 0 ;   // error
+}
+
 
 static int read_proc_stat(cpu_times_t *times)
 {
-    FILE *f = fopen("/proc/stat", "r") ;
+    FILE *f = fopen ("/proc/stat", "r") ;
     if (!f) return -1 ;
 
     char buf[2048] = {0} ;
@@ -44,12 +63,12 @@ static int read_proc_stat(cpu_times_t *times)
     }
 
     // Now read per-CPU lines
-    while (fgets(buf, sizeof(buf), f))
+    while (fgets (buf, sizeof(buf), f))
       {
 	int cpu_id = -1;
 	cpu_times_t tt = {0};
 	
-	int n = sscanf(buf, "cpu%d %llu %llu %llu %llu %llu %llu %llu %llu %llu %llu",
+	int n = sscanf (buf, "cpu%d %llu %llu %llu %llu %llu %llu %llu %llu %llu %llu",
 		       &cpu_id,
                        &tt.user, &tt.nice, &tt.sys, &tt.idle,
                        &tt.iowait, &tt.irq, &tt.softirq, &tt.steal,
@@ -61,13 +80,12 @@ static int read_proc_stat(cpu_times_t *times)
         }
       }
     
-    
   fclose(f) ;
   return num_cpus ;
 }
   
 /* node with least average CPU utilization */
-int saBestNumactlNode (void)
+int saBestNumactlNode (int *nCPUp, int *maxThreadsp)
 {
   int best_node = 0 ;
   double min_avg_usage = -1.0 ;
@@ -149,9 +167,12 @@ int saBestNumactlNode (void)
     }
     closedir(d) ;
   } 
-  
+  *nCPUp = num_cpus ;
+  *maxThreadsp = get_max_threads_limit () ;
   return best_node ;
 }
+#endif
+/* ==================== LINUX ONLY ==================== */
 
 #ifdef JUNK
 
@@ -161,6 +182,109 @@ sleep 4
 end
 
 #endif
-  
 
+#ifdef JUNK
+// code draft to be copied in sa.align.c
+  alignTrimOnIntrons (Array aa, Array introns)
+/* given candidate exons
+ * we expect seed junctions to be very specific
+ * in a given exon we expect only a single donor or acceptor seed
+ * to be confirmed in another exon candidate
+ * when a pair is found we can safely trim the candidate exon
+ * and recompute its trimmed exact pattern of errors
+ * before sending to alignSelectBestDynamicPath
+ */
+{
+  AC_HANDLE h = ac_new_handle () ;
+  int iMax = arrayMax (aa) ;
+  int jMax = arrayMax (introns) ;
+  ALIGN *up, *vp ;
+  Array e2d = arrayCreate (2*iMax, HIT, h) ;
+  Array e2a = arrayCreate (2*iMax, HIT, h) ;
+  int ne2d = 0 ;
+  
+  /* associate exons to donors and acceptors */
+  for (int ii = 0 ; ii < iMax ; ii++)
+    {
+      up = arrp (aa, ii, ALIGN) ;
+      chrom = up->chrom ;
+      
+      for (int jj = 0 ; jj < jMax ; jj++)
+	{
+	  vp = arrp (introns, ii, ALIGN) ;
+	  if (vp->chrom == chrom && vp->a1 <= up->a2 + 1 && vp->a1 > up->a1)
+	    {
+	      HIT *hp = arrayp (e2d, ne2d++, HIT) ;
+	      hp->a1 = ii ; hp->x1 = jj ;
+	    }
+	  if (vp->chrom == chrom && vp->a2 < up->a2 && vp->a2 >= up->a1 - 1)
+	    {
+	      HIT *hp = arrayp (e2a, ne2a++, HIT) ;
+	      hp->a1 = ii ; hp->x1 = jj ;
+	    }
+	}
+    }
+  arraySort (e2d, hitOrder) ;
+  arraySort (e2a, hitOrder) ;
+
+  /* associate pairs of exons, trim them */
+  int ie2a = 0, ie2d = 0 ;
+  for (ie2d = 0 ; ie2d < ne2d ; ie2d++)
+    {
+      HIT *xp = arrp (e2d, ie2d, HIT) ;
+      int mate = -1, nMate = 0, nd = 0 ; /* number of recognized donors in this exon */
+      ii = xp->a1 ; /* my exon */
+      while (ie2d + nd < ne2d && xp[nd].a1 == xp[0])
+	{
+	  /* can we find another exon corresponding to the acceptor */
+	  for (ie2a = 0 ; ie2a < ne2a ; ie2a++)
+	    {
+	      HIT *yp = arrp (e2a, ie2a, HIT) ;
+	      if (yp->x1 == xp->x1 && yp->a1 != ii) 
+		nMate++ ; mate = yp->a1 ;  /* common exon */
+	    }
+	}
+      if (nMate == 1)
+	{
+	  up = arrp (aa, ii, ALIGN) ;
+	  up->rigthClip = mate + 1 ;
+	}
+    }
+  for (ie2a = 0 ; ie2a < ne2a ; ie2a++)
+    {
+      HIT *xp = arrp (e2a, ie2a, HIT) ;
+      int mate = -1, nMate = 0, na = 0 ; /* number of recognized donors in this exon */
+      ii = xp->a1 ; /* my exon */
+      while (ie2a + na < ne2a && xp[na].a1 == xp[0])
+	{
+	  /* can we find another exon corresponding to the donor */
+	  for (ie2d = 0 ; ie2d < ne2d ; ie2d++)
+	    {
+	      HIT *yp = arrp (e2d, ie2d, HIT) ;
+	      if (yp->x1 == xp->x1 && yp->a1 != ii) 
+		nMate++ ; mate = yp->a1 ;  /* common exon */
+	    }
+	}
+      if (nMate == 1)
+	{
+	  up = arrp (aa, ii, ALIGN) ;
+	  up->leftClip = mate + 1 ;
+	}
+    }
+  /* clip exons with a well defined path */
+  for (ii = 0 ; ii < iMax ; ii++)
+    {
+      int id, ia ;
+      up = arrp (aa, ii, ALIGN) ;
+      id = up->leftClip ;
+      ia = up->rightClip ;
+      if (id > 0)
+	{
+
+	}
+    }
+
+  ac_free (h) ;
+}
+#endif
 

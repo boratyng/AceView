@@ -1474,12 +1474,32 @@ int main (int argc, const char *argv[])
       )
     {
       vTXT txt = vtxtHandleCreate (h) ;
+      BOOL nbIsSet = FALSE ;
+      BOOL naIsSet = FALSE ;
+      BOOL mtIsSet = FALSE ;
+      int nCPU = 0, maxThreads = 0 ;
       
-      int nodes = saBestNumactlNode () ;
+      int nodes = saBestNumactlNode (&nCPU, &maxThreads) ;
 	
       vtxtPrintf (txt, "/usr/bin/numactl  --cpunodebind=%d --membind=%d ", nodes, nodes) ;
       for (int i = 0 ; i < argc ; i++)
-	vtxtPrintf (txt, " %s " , argv[i]) ;
+	{
+
+	  if (! strcmp (argv[i], "--nB") || ! strcmp (argv[i], "--nBlocks"))
+	    nbIsSet = TRUE ;
+	  if (! strcmp (argv[i], "--nA") || ! strcmp (argv[i], "--nAgents"))
+	    naIsSet = TRUE ;
+	  if (! strcmp (argv[i], "--max_threads"))
+	    mtIsSet = TRUE ;
+	  vtxtPrintf (txt, " %s " , argv[i]) ;
+	}
+      if (! nbIsSet && nCPU)  /* do not override user's choice */
+	vtxtPrintf (txt, " --nB %d " , 3 * nCPU/2) ;
+      if (! naIsSet && nCPU)  /* do not override user's choice */
+	vtxtPrintf (txt, " --nA %d " , 3 * nCPU/2) ;
+      if (! mtIsSet && maxThreads)  /* do not override user's choice */
+	vtxtPrintf (txt, " --max__threads %d " , maxThreads/2) ;
+	  
       vtxtPrintf (txt, " --numactl ") ;
 
       fprintf (stderr, "%s\n", vtxtPtr (txt)) ;

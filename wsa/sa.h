@@ -530,7 +530,7 @@ void saAlignDo (const PP *pp, BB *bb) ;
 int saAlignOrder (const void *va, const void *vb) ;
 
 /* sa.utils */
-int saBestNumactlNode (void) ;
+int saBestNumactlNode (int *nCPUp, int *maxThreadsp) ;
 
 /* sa.tests */
 void saCreateRandomGenome (PP *pp, int nMb) ;
