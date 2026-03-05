@@ -36,9 +36,10 @@ void saCreateRandomGenome (PP *pp, int nMb)
   if (iMax < 0) messcrash ("nMb = %d negative in saCreateRandomIndex", nMb) ;
 
   char buf[iMax+10] ;
+  char mrna0[1200] = {0} ;
   char mrna1[1200] = {0} ;
   char mrna2[1200] = {0} ;
-
+  
 
   aceOutf (aoc, "G\t%s/random.genome.fasta\n", pp->outFileName) ;
   aceOutf (aoc, "I\t%s/random.gtf\n", pp->outFileName) ;
@@ -55,7 +56,7 @@ void saCreateRandomGenome (PP *pp, int nMb)
 	  a1 = 10000 * ii + 200 * jj + 1 ;
 	  dda = (jj == 2 ? 100 : 100) ;
 	  a2 = a1 + dda - 1 ;
-	  memcpy (mrna1+da, buf + a1 -1, dda) ;
+	  memcpy (mrna0+da, buf + a1 -1, dda) ;
 	  da += dda ;
 	  if (a1 > 2) buf[a1-3] = 'a' ;
 	  if (a1 > 2) buf[a1-2] = 'g' ;
@@ -68,10 +69,11 @@ void saCreateRandomGenome (PP *pp, int nMb)
       /* add a polyA tail */
       jj = 0 ;
       if (0) for (jj = 0 ; jj < 12 ; jj++)
-	mrna1[da + jj] = 'a' ;
-      mrna1[da + jj] = 0 ;
+	mrna0[da + jj] = 'a' ;
+      mrna0[da + jj] = 0 ;
       /* duplicate the reads with independant errors */
-      memcpy (mrna2, mrna1, da+jj+1) ;
+      memcpy (mrna2, mrna0, da+jj+1) ;
+      memcpy (mrna2, mrna0, da+jj+1) ;
       int kk = 5, i, k, dx1, dx2 ;
       /* introduce kk substitutions */
       if (0)
@@ -84,25 +86,25 @@ void saCreateRandomGenome (PP *pp, int nMb)
 	  }
       /* introduce kk deletions */
       if (0) 
-	for (i = dx1 = dx2 = 0 ; i <= da ; i++)  /* include the therminal zero: i <= da */
+	for (i = dx1 = dx2 = 0 ; i <= da ; i++)  /* include the terminal zero: i <= da */
 	  {
 	    int x1 = randint() % 100 ;
 	    if (x1 ==0)  dx1++ ;
-	    mrna1[i] = mrna1[i + dx1] ;
+	    mrna1[i] = mrna0[i + dx1] ;
 	    int x2 = randint() % 100 ;
 	    if (x2 ==0)  dx2++ ;
-	    mrna2[i] = mrna2[i + dx2] ;
+	    mrna2[i] = mrna0[i + dx2] ;
 	  }
       /* introduce kk insertions */
       if (1)
-	for (i = dx1 = dx2 = 0 ; i <= da ; i++)  /* include the therminal zero: i <= da */
+	for (i = dx1 = dx2 = 0 ; i <= da ; i++)  /* include the terminal zero: i <= da */
 	  {
 	    int x1 = randint() % 100 ;
-	    if (x1 ==0)  dx1++ ;
-	    mrna1[i+dx1] = mrna1[i] ;
+	    if (i && x1 ==0)  dx1++ ;
+	    mrna1[i] = mrna0[i-dx1] ;
 	    int x2 = randint() % 100 ;
-	    if (x2 ==0)  dx2++ ;
-	    mrna2[i+dx2] = mrna2[i] ;
+	    if (i && x2 ==0)  dx2++ ;
+	    mrna2[i] = mrna0[i-dx2] ;
 	  }
       
       aceOutf (aom, ">s%d\n%s\n", ii, mrna1) ;
