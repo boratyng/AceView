@@ -1455,6 +1455,9 @@ int main (int argc, const char *argv[])
 	}
     }}
 
+#ifdef __linux__
+  /* ==================== LINUX ONLY ==================== */
+  
   /******************** NUMA harware  optimizer ******************************************/
   /******************** pin the threads to the least used node ***************************/
   /* numa (non unifirm mmory access) harware are composed of several nodes, each with many CPUs
@@ -1474,31 +1477,21 @@ int main (int argc, const char *argv[])
       )
     {
       vTXT txt = vtxtHandleCreate (h) ;
-      BOOL nbIsSet = FALSE ;
-      BOOL naIsSet = FALSE ;
       BOOL mtIsSet = FALSE ;
-      int nCPU = 0, maxThreads = 0 ;
+      int maxThreads = 0 ;
       
-      int nodes = saBestNumactlNode (&nCPU, &maxThreads) ;
+      int nodes = saBestNumactlNode (&maxThreads) ;
 	
       vtxtPrintf (txt, "/usr/bin/numactl  --cpunodebind=%d --membind=%d ", nodes, nodes) ;
       for (int i = 0 ; i < argc ; i++)
 	{
 
-	  if (! strcmp (argv[i], "--nB") || ! strcmp (argv[i], "--nBlocks"))
-	    nbIsSet = TRUE ;
-	  if (! strcmp (argv[i], "--nA") || ! strcmp (argv[i], "--nAgents"))
-	    naIsSet = TRUE ;
 	  if (! strcmp (argv[i], "--max_threads"))
 	    mtIsSet = TRUE ;
 	  vtxtPrintf (txt, " %s " , argv[i]) ;
 	}
-      if (! nbIsSet && nCPU)  /* do not override user's choice */
-	vtxtPrintf (txt, " --nB %d " , 3 * nCPU/2) ;
-      if (! naIsSet && nCPU)  /* do not override user's choice */
-	vtxtPrintf (txt, " --nA %d " , 3 * nCPU/2) ;
       if (! mtIsSet && maxThreads)  /* do not override user's choice */
-	vtxtPrintf (txt, " --max__threads %d " , maxThreads/2) ;
+	vtxtPrintf (txt, " --max_threads %d " , maxThreads/2) ;
 	  
       vtxtPrintf (txt, " --numactl ") ;
 
@@ -1506,7 +1499,8 @@ int main (int argc, const char *argv[])
 
       return system (vtxtPtr (txt)) ;
     }
-  
+
+#endif  
   /**************************  debugging modules, ignore *********************************/
 
   getCmdLineText (h, &argc, argv, "-o", &(p.outFileName)) ;
@@ -1763,11 +1757,16 @@ int main (int argc, const char *argv[])
     messcrash ("The source code assumes that long unsigned ints use 64 bits not %d, sorry", 8 * sizeof (long unsigned int)) ;
 
   /***************** amount or parallelization **************************/
-  nAgents = NAGENTS ;
+  int nCPU = get_number_of_cpus () ;
+
+  /* defaults */
+  nAgents = 3 * nCPU / 2 ;  /* number of aligner agents */
+  p.nBlocks = 3 * nCPU / 2 ;  /* max number of BB blocks processed in parallel */
+  
   if (! getCmdLineInt (&argc, argv, "--nAgents", &(nAgents)))
     getCmdLineInt (&argc, argv, "--nA", &(nAgents)) ;
 
-  p.nBlocks = NBLOCKS ;  /* max number of BB blocks processed in parallel */
+
   if (p.debug)      /* under debugger, it is more convenient to run with a single agent and a single block */
     p.nBlocks = 1 ; /* but we wish to be able to reset nBlocks even in debug mode */
   if (!getCmdLineInt (&argc, argv, "--nBlocks", &(p.nBlocks)))

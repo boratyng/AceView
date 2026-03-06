@@ -62,6 +62,7 @@ static void globalDnaCreate (BB *bb)
   bigArray (bb->dnaCoords, 2 * ii + 1, unsigned int) = ln ;    /* global end */ 
   
   /* construct the global DNA  */
+  if (!ln) messcrash ("Could not read any sequence in the fasta file") ;
   bb->globalDna = bigArrayHandleCreate (ln, unsigned char, bb->h) ;
   cp = bigArrayp (bb->globalDna, ln -1, unsigned char) ; /* make room */
   for (ln = 0, ii = 1 ; ii < iMax ; ii++)

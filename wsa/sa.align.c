@@ -11,9 +11,9 @@
 
  * This module extends seed hits to full alignments
  */
-/*
-  #define ARRAY_CHECK
-*/
+
+#define ARRAY_CHECK
+
 
 #include "sa.h"
 #define MAXJUMP 3
@@ -1497,15 +1497,15 @@ static void alignAdjustExons (const PP *pp, BB *bb, Array bestAp, Array aa, Arra
 			{
 			  ep = arrp (zp.errors, ie, A_ERR) ;
 			  int es = ep->iShort + 1 ;
-			  int dx1 = 0, da = 0 ;  
+			  int dx1 = 0 ;  
 			  switch (ep->type)
 			    {  /* locate erroneous base */
-			    case INSERTION: dx1 = 0 ; da = 1 ; break ;
-			    case INSERTION_DOUBLE: dx1 = 1 ; da = 2 ; break ;
-			    case INSERTION_TRIPLE: dx1 = 2 ; da = 3 ; break ;
-			    case TROU: dx1 = -1 ; da = -1 ; break ;
-			    case TROU_DOUBLE: dx1 = -1 ; da = -2 ; break ;
-			    case TROU_TRIPLE: dx1 = -1; da = -3 ; break ;
+			    case INSERTION: dx1 = 0 ; break ;
+			    case INSERTION_DOUBLE: dx1 = 1 ; break ;
+			    case INSERTION_TRIPLE: dx1 = 2 ; break ;
+			    case TROU: dx1 = -1 ; break ;
+			    case TROU_DOUBLE: dx1 = -1 ; break ;
+			    case TROU_TRIPLE: dx1 = -1 ; break ;
 			    default : break ;
 			    }
 			  if (es == vp->x1 && dx1 == -1)
@@ -1590,7 +1590,7 @@ static void alignAdjustExons (const PP *pp, BB *bb, Array bestAp, Array aa, Arra
 		      int i ;
 		      for (i = 0, ep = arrp (vp->errors, 0, A_ERR) ; i < vp->nErr ; i++, ep++)
 			{
-			  ep->iShort = lnShort - ep->iShort - 1 ;
+			  ep->iShort = lnShort - ep->iShort - 1 ;  /* 20260305: valgrind says there is an error here */
 			  if (0 && ep->baseShort > 17)
 			    invokeDebugger () ;
 			  ep->baseShort = complementBase(ep->baseShort & 0xf) ;
@@ -1611,6 +1611,120 @@ static void alignAdjustExons (const PP *pp, BB *bb, Array bestAp, Array aa, Arra
   ac_free(h1) ;
   
 } /* alignAdjustExons */
+
+
+/**************************************************************/
+/*
+ * findIntronMates (Array aa, Array introns)
+ * given candidate exons
+ * we expect seed junctions to be very specific
+ * in a given exon we expect only a single donor or acceptor seed
+ * to be confirmed in another exon candidate
+ * when a pair is found we can safely trim the candidate exon
+ * and recompute its trimmed exact pattern of errors
+ * before sending to alignSelectBestDynamicPath
+ */
+static void findIntronMates (Array aa, Array introns)
+{
+  AC_HANDLE h = ac_new_handle () ;
+  int iMax = arrayMax (aa) ;
+  int jMax = arrayMax (introns) ;
+  ALIGN *up, *vp ;
+  Array e2d = arrayHandleCreate (2*iMax, HIT, h) ;
+  Array e2a = arrayHandleCreate (2*iMax, HIT, h) ;
+  int ne2a = 0, ne2d = 0 ;
+
+  arraySort (aa, saAlignOrder) ;
+
+  /* associate exons to donors and acceptors */
+  for (int ii = 0 ; ii < iMax ; ii++)
+    {
+      up = arrp (aa, ii, ALIGN) ;
+      int chrom = up->chrom ;
+      
+      for (int jj = 0 ; jj < jMax ; jj++)
+	{
+	  vp = arrp (introns, ii, ALIGN) ;
+	  if (vp->chrom == chrom && vp->a1 <= up->a2 + 1 && vp->a1 > up->a1)
+	    {
+	      HIT *hp = arrayp (e2d, ne2d++, HIT) ;
+	      hp->a1 = ii ; hp->x1 = jj ;
+	    }
+	  if (vp->chrom == chrom && vp->a2 < up->a2 && vp->a2 >= up->a1 - 1)
+	    {
+	      HIT *hp = arrayp (e2a, ne2a++, HIT) ;
+	      hp->a1 = ii ; hp->x1 = jj ;
+	    }
+	}
+    }
+
+  /* associate pairs of exons, trim them */
+  int ie2a = 0, ie2d = 0 ;
+  for (ie2d = 0 ; ie2d < ne2d ; ie2d++)
+    {
+      HIT *xp = arrp (e2d, ie2d, HIT) ;
+      int mate = -1, nMate = 0, nd = 0 ; /* number of recognized donors in this exon */
+      int ii = xp->a1 ; /* my exon */
+      while (ie2d + nd < ne2d && xp[nd].a1 == xp[0].a1)
+	{
+	  /* can we find another exon corresponding to the acceptor */
+	  for (ie2a = 0 ; ie2a < ne2a ; ie2a++)
+	    {
+	      HIT *yp = arrp (e2a, ie2a, HIT) ;
+	      if (yp->x1 == xp->x1 && yp->a1 != ii) 
+		{ nMate++ ; mate = yp->a1 ; }  /* common exon */
+	    }
+	}
+      if (nMate == 1)
+	{
+	  up = arrp (aa, ii, ALIGN) ;
+	  up->mateA2 = mate + 1 ;
+	}
+    }
+  for (ie2a = 0 ; ie2a < ne2a ; ie2a++)
+    {
+      HIT *xp = arrp (e2a, ie2a, HIT) ;
+      int mate = -1, nMate = 0, na = 0 ; /* number of recognized donors in this exon */
+      int ii = xp->a1 ; /* my exon */
+      while (ie2a + na < ne2a && xp[na].a1 == xp[0].a1)
+	{
+	  /* can we find another exon corresponding to the donor */
+	  for (ie2d = 0 ; ie2d < ne2d ; ie2d++)
+	    {
+	      HIT *yp = arrp (e2d, ie2d, HIT) ;
+	      if (yp->x1 == xp->x1 && yp->a1 != ii) 
+		{ nMate++ ; mate = yp->a1 ; }  /* common exon */
+	    }
+	}
+      if (nMate == 1)
+	{
+	  up = arrp (aa, ii, ALIGN) ;
+	  up->mateA1 = mate + 1 ;
+	}
+    }
+  /* clip exons with a well defined path */
+  for (int ii = 0 ; ii < iMax ; ii++)
+    {
+      int id, ia ;
+      up = arrp (aa, ii, ALIGN) ;
+      id = up->mateA2 ;
+      ia = up->mateA1 ;
+      if (id > 0)
+	{
+	  vp = arrp (aa, id, ALIGN) ;
+	  if (vp->mateA1 != ii + 1)
+	    up->mateA2 = 0 ;
+	}
+      if (ia > 0)
+	{
+	  vp = arrp (aa, ia, ALIGN) ;
+	  if (vp->mateA2 != ii + 1)
+	    up->mateA1 = 0 ;
+	}
+    }
+
+  ac_free (h) ;
+} /* findIntronMates */
 
 /**************************************************************/
 /* Dynamic programming of path score */
@@ -1633,7 +1747,6 @@ static void alignSelectBestDynamicPath (const PP *pp, BB *bb, Array aaa, Array a
   int bigErrCost = 8 ; /* errCost ; */
   int myRead = arrp (aa, 0, ALIGN)->read ;
   iMax = arrayMax (aa) ;
-  arraySort (aa, saAlignOrder) ;
 
   /* create scores */
   if (iMax)
@@ -1692,7 +1805,7 @@ static void alignSelectBestDynamicPath (const PP *pp, BB *bb, Array aaa, Array a
       BOOL isDown = ! (chrom & 0x1) ;
       BOOL foundI2 = FALSE ;
       
-      i2 = i02 ; vp = arrp (aa, i2, ALIGN) ; /* preposition */
+      i2 = i02 ; vp = i2 < iMax ? arrp (aa, i2, ALIGN) : 0 ; /* preposition */
       for (foundI2 = FALSE ; pp->splice && i2 < iMax ; i2++, vp++)
 	{
 	  if (i1 == i2)
@@ -1704,6 +1817,8 @@ static void alignSelectBestDynamicPath (const PP *pp, BB *bb, Array aaa, Array a
 	      if (!foundI2) i02 = i2 + 1 ;
 	      continue ;
 	    }  
+	  if (up->mateA2 > 0 && up->mateA2 != i2 + 1)
+	    continue ;
 	  foundI2 = TRUE ;
 	  if (vp->chrom == chrom
 	      && vp->x2 >= x1 - 8 && vp->x2 < x2 && vp->x1 < x2
@@ -2505,6 +2620,7 @@ static void alignDoOneRead (const PP *pp, BB *bb
   int b1 = 0, b2 = 0, y1 = 0, y2 = 0, ha1 = 0, readOld = 0, chromOld = 0, readA = 0, chromA = 0, read1 = 0, iiGood = 0 ;
   BOOL isDownOld = TRUE ;
   Array dna = 0, dnaG = 0, dnaGR = 0 ;
+  Array introns = arrayHandleCreate (32, ALIGN, bb->h) ;
   int errMax = pp->errMax ; /* 999999 ; */
   int chromLength = 0 ;
   /*
@@ -2537,9 +2653,11 @@ static void alignDoOneRead (const PP *pp, BB *bb
 	  read1 = read ;
 	  if (arrayMax (aa))
 	    { /* create chain scores */
+	      if (0) findIntronMates (aa, introns) ;
 	      alignSelectBestDynamicPath (pp, bb, aaa, aa, dna, chromA, dnaG, dnaGR, bestAp, maxJump, maxJump2) ;
 	    }
 	  arrayMax (aa) = kMax = 0 ;
+	  arrayMax (introns) = 0 ;
 	}
 
       if (read != readA)

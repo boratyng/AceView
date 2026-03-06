@@ -72,7 +72,7 @@ void saCreateRandomGenome (PP *pp, int nMb)
 	mrna0[da + jj] = 'a' ;
       mrna0[da + jj] = 0 ;
       /* duplicate the reads with independant errors */
-      memcpy (mrna2, mrna0, da+jj+1) ;
+      memcpy (mrna1, mrna0, da+jj+1) ;
       memcpy (mrna2, mrna0, da+jj+1) ;
       int kk = 5, i, k, dx1, dx2 ;
       /* introduce kk substitutions */
@@ -96,7 +96,7 @@ void saCreateRandomGenome (PP *pp, int nMb)
 	    mrna2[i] = mrna0[i + dx2] ;
 	  }
       /* introduce kk insertions */
-      if (1)
+      if (0)
 	for (i = dx1 = dx2 = 0 ; i <= da ; i++)  /* include the terminal zero: i <= da */
 	  {
 	    int x1 = randint() % 100 ;
