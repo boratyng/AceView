@@ -41,7 +41,7 @@ int get_max_threads_limit (void)
     if (getrlimit (RLIMIT_NPROC, &rl) == 0)
       {
         if (rl.rlim_cur == RLIM_INFINITY)
-	  return 99999 ;  // "unlimited" → return a very large number
+	  return -1 ;  // "unlimited"
         else
 	  return (int)rl.rlim_cur ;    //soft limit
       }

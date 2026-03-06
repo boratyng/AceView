@@ -1624,37 +1624,54 @@ static void alignAdjustExons (const PP *pp, BB *bb, Array bestAp, Array aa, Arra
  * and recompute its trimmed exact pattern of errors
  * before sending to alignSelectBestDynamicPath
  */
-static void findIntronMates (Array aa, Array introns)
+static void findIntronMates (Array aa, BigArray introns)
 {
-  return ;
-  AC_HANDLE h = ac_new_handle () ;
   int iMax = arrayMax (aa) ;
-  int jMax = arrayMax (introns) ;
-  ALIGN *up, *vp ;
+  int ne2a = 0, ne2d = 0 ;
+  long int jj = 0, jMax = introns ? bigArrayMax (introns) : 0 ;
+  ALIGN *up ;
+  HIT *vp = jMax ? bigArrp (introns, 0, HIT) :  0 ;
+
+  if (! jMax) return ;
+  return ; 
+  AC_HANDLE h = ac_new_handle () ;
   Array e2d = arrayHandleCreate (2*iMax, HIT, h) ;
   Array e2a = arrayHandleCreate (2*iMax, HIT, h) ;
-  int ne2a = 0, ne2d = 0 ;
-
-  arraySort (aa, saAlignOrder) ;
-
+  
   /* associate exons to donors and acceptors */
   for (int ii = 0 ; ii < iMax ; ii++)
     {
       up = arrp (aa, ii, ALIGN) ;
       int chrom = up->chrom ;
+      int read = up->read ;
+      long int dj = jMax / 16 ;
       
-      for (int jj = 0 ; jj < jMax ; jj++)
+      for (; jj < jMax ; jj += dj, vp += dj)
 	{
-	  vp = arrp (introns, ii, ALIGN) ;
+	  if (vp->read < read) continue ;
+	  if (vp->read > read) break ;
+	}
+      if (jj > 0)
+	{
+	  vp -= dj ;
+	  jj -= dj ;
+	}
+      for (; jj > 0 && vp->read >= read ; jj--, vp--)
+	;
+      
+      for (; jj < jMax ; jj++, vp++)
+	{
+	  if (vp->read < read) continue ;
+	  if (vp->read > read) break ;
 	  if (vp->chrom == chrom && vp->a1 <= up->a2 + 1 && vp->a1 > up->a1)
 	    {
 	      HIT *hp = arrayp (e2d, ne2d++, HIT) ;
-	      hp->a1 = ii ; hp->x1 = jj ;
+	      hp->a1 = ii ; hp->x1 = (int)jj ;
 	    }
-	  if (vp->chrom == chrom && vp->a2 < up->a2 && vp->a2 >= up->a1 - 1)
+	  if (vp->chrom == chrom && vp->x1 < up->a2 && vp->x1 >= up->a1 - 1)
 	    {
 	      HIT *hp = arrayp (e2a, ne2a++, HIT) ;
-	      hp->a1 = ii ; hp->x1 = jj ;
+	      hp->a1 = ii ; hp->x1 = (int)jj ;
 	    }
 	}
     }
@@ -1703,23 +1720,25 @@ static void findIntronMates (Array aa, Array introns)
 	  up->mateA1 = mate + 1 ;
 	}
     }
-  /* clip exons with a well defined path */
+  /* restrict to reciprocal pairs */
   for (int ii = 0 ; ii < iMax ; ii++)
     {
       int id, ia ;
+      
+      ALIGN *wp ;
       up = arrp (aa, ii, ALIGN) ;
       id = up->mateA2 ;
       ia = up->mateA1 ;
       if (id > 0)
 	{
-	  vp = arrp (aa, id, ALIGN) ;
-	  if (vp->mateA1 != ii + 1)
+	  wp = arrp (aa, id, ALIGN) ;
+	  if (wp->mateA1 != ii + 1)
 	    up->mateA2 = 0 ;
 	}
       if (ia > 0)
 	{
-	  vp = arrp (aa, ia, ALIGN) ;
-	  if (vp->mateA2 != ii + 1)
+	  wp = arrp (aa, ia, ALIGN) ;
+	  if (wp->mateA2 != ii + 1)
 	    up->mateA1 = 0 ;
 	}
     }
@@ -2615,7 +2634,7 @@ static void alignDoOneRead (const PP *pp, BB *bb
   BOOL debug = FALSE ;
   AC_HANDLE h = ac_new_handle () ;
   HIT * restrict hit ;
-  ALIGN *ap ;
+  ALIGN *ap = 0 ;
   long int ii, iMax = bigArrayMax (hits), kMax = 0 ;
   int a1, a2, x1, x2 ;
   int b1 = 0, b2 = 0, y1 = 0, y2 = 0, ha1 = 0, readOld = 0, chromOld = 0, readA = 0, chromA = 0, read1 = 0, iiGood = 0 ;
@@ -2651,9 +2670,11 @@ static void alignDoOneRead (const PP *pp, BB *bb
 	continue ;
       if (read != read1)
 	{
+	  kMax = arrayMax (aa) ;
 	  read1 = read ;
-	  if (arrayMax (aa))
+	  if (kMax)
 	    { /* create chain scores */
+	      if (kMax > 1) arraySort (aa, saAlignOrder) ;
 	      findIntronMates (aa, bb->intronHits) ;
 	      alignSelectBestDynamicPath (pp, bb, aaa, aa, dna, chromA, dnaG, dnaGR, bestAp, maxJump, maxJump2) ;
 	    }
@@ -2718,7 +2739,7 @@ static void alignDoOneRead (const PP *pp, BB *bb
 	{
 	  if (debug) fprintf (stderr, "Hit %ld\tr=%d\t%d\t%d\tc=%d\t%d\t%d\tDoublet of %d\t%s\t%d\n", ii, read, x1, x2, chrom, a1, a2, iiGood, dictName (pp->bbG.dict, chrom >> 1), hit->a1) ;
 	  hit->read = 0 ;  /* remove doublets */
-	  if (kMax)
+	  if (kMax && ap)
 	    {
 	      if (donor)
 		ap->donor = donor ;  /* uninitialized ? */
@@ -2770,11 +2791,15 @@ static void alignDoOneRead (const PP *pp, BB *bb
 	    }
 	}
     }
-  if (arrayMax (aa))
+
+  kMax = arrayMax (aa) ;
+  if (kMax)
     { /* create chain scores */
+      if (kMax > 1) arraySort (aa, saAlignOrder) ;
       findIntronMates (aa, bb->intronHits) ;
       alignSelectBestDynamicPath (pp, bb, aaa, aa, dna, chromA, dnaG, dnaGR, bestAp, maxJump, maxJump2) ;
     }
+
   ac_free (h) ;
   return ;
 } /* alignDoOneRead */
@@ -3003,6 +3028,9 @@ void saAlignDo (const PP *pp, BB *bb)
 	sleep (1) ;                /* all other blocks wait */
       }
 
+  if (bb->intronHits && bigArrayMax (bb->intronHits) > 1)
+      saSort (bb->intronHits, 2) ; /* hitReadOrder */
+
  secondPass:
   iMax = bigArrayMax (bb->hits) ;
   h = ac_new_handle () ;
@@ -3130,7 +3158,7 @@ void saAlignDo (const PP *pp, BB *bb)
 		  if (0 && zp->seed1 < 2 * zp->seed8) k8 = 8 ;
 		  for (k = 0 ; k < kk ; k++, zp++)
 		    {
-		      /* keep at most 2 chromosomes */
+		      /* select best clusters */
 		      if (
 			  ( k > k8 && zp->weight < zp0->weight && zp->seeds < 3) ||
 			  (k >= k8 && 3 * zp->weight < zp0->weight) ||

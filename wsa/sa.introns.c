@@ -328,7 +328,7 @@ void saIntronsOptimize (BB *bb, ALIGN *vp, ALIGN *wp, Array dnaG)
   int dy = vp->x2 - wp->x1 + 1 ;  /* dy > 0 recouvrement, dy < 0: trou dans le read */
   BOOL isDown = (vp->a1 < vp->a2 ? TRUE : FALSE ) ;
   int da = isDown ? vp->a2 - wp->a1 + 1: wp->a1 - vp->a2 + 1 ;
-  int day = dy - da ;
+  /* int day = dy - da ; */
   
   if (0 && da < 4 && da > -4 && dy < 4 && dy > -4 && vp->chrom == wp->chrom)
     {
@@ -341,7 +341,7 @@ void saIntronsOptimize (BB *bb, ALIGN *vp, ALIGN *wp, Array dnaG)
 	    vp->errors = arrayHandleCreate (20, A_ERR, bb->h) ;
 	}
       vp->nErr = arrayMax (vp->errors) ;
-      int dz = dy - (isDown ? da : -da) ;
+      /*       int dz = dy - (isDown ? da : -da) ; */
       if (dy) /* create an error at th new junction */
 	{
 	  epX = arrayp (vp->errors, vp->nErr++, A_ERR) ;

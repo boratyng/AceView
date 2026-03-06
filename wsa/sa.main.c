@@ -295,15 +295,15 @@ static long int  matchHitsDo (const PP *pp, BB *bbG, BB *bb)
   const long unsigned int mask26 = (1L << 26) - 1 ;
   BigArray hits = bigArrayHandleCreate(hMax, HIT, bb->h);
   bigArray (hitsArray, nHA++, BigArray) = hits ;
-  Array intronHits ;
+  BigArray intronHits = 0 ;
   const int seedLength = pp->seedLength ;
   const int intronBonus = 1 ;
   int absoluteMax = 0x1 << NTARGETREPEATBITS ;
   int absoluteX1Max = 0x1 << ( 31 - 3 - NTARGETREPEATBITS) ;
   int maxTargetRepeats = pp->maxTargetRepeats  ;
-  int nIntronHits = 0
+  long int nIntronHits = 0 ;
     
-  intronHits = bb->intronHits = arrayHandleCreate (10000, HIT, bb->h) ;
+  intronHits = bb->intronHits = bigArrayHandleCreate (10000, HIT, bb->h) ;
   for (int kk = 0; kk < NN ; kk++)
     {
       long int i = 0, iMax = bigArrayMax (bbG->cwsN[kk]);
@@ -460,7 +460,7 @@ static long int  matchHitsDo (const PP *pp, BB *bbG, BB *bb)
 		    {
 		      BOOL readUp = rw->nam & 0x1 ;
 		      BOOL chromUp = cw1->nam & 0x1 ; 
-
+		      HIT *intronHit = 0 ;
 		      unsigned int z = cw1->intron ;
 		      unsigned int isIntronDown = (z >> 28) & 0x4 ;
 		      int da1 =  z & 0xf ; /* nb of letters in first exon : 4....11 */
@@ -495,11 +495,11 @@ static long int  matchHitsDo (const PP *pp, BB *bbG, BB *bb)
 			    messcrash ("read coordinate x1=%d too large, please edit the source code", x1) ;
 			  hit->x1 = ( hit->x1 << NTARGETREPEATBITS) | 0x1 ;  /* all intron seeds are valuable */
 
-			  intronHit = arrayp (intronHits, nIntronHits++, HIT) ;
+			  intronHit = bigArrayp (intronHits, nIntronHits++, HIT) ;
 			  intronHit->chrom =  cw1->nam & 0xfffffffe ; /* to select plus strand, kill the last bit */
 			  intronHit->read = rw->nam >> 1 ;
-			  intron->a1 = a1 ;
-			  intron->x1 = a1 + da - 1 ;
+			  intronHit->a1 = a1 ;
+			  intronHit->x1 = a1 + da - 1 ;
 			  
 			  /* Create a hit to the first two bases of the acceptor exon (x1/ a1 + da) */
 			  nn++ ;
@@ -527,11 +527,11 @@ static long int  matchHitsDo (const PP *pp, BB *bbG, BB *bb)
 			  a1 = cw1->pos ;       /* first base of intron in the genome, in bio coordinates */
 		          x1 = rw->pos + (seedLength - da1) - 1 ;  /* matching base on the read */
 			  
-			  intronHit = arrayp (intronHits, nIntronHits++, HIT) ;
+			  intronHit = bigArrayp (intronHits, nIntronHits++, HIT) ;
 			  intronHit->chrom =  cw1->nam | 0x1 ; /* to select plus strand, kill the last bit */
 			  intronHit->read = rw->nam >> 1 ;
-			  intron->a1 = a1 ;
-			  intron->x1 = a1 + da - 1 ;
+			  intronHit->a1 = a1 ;
+			  intronHit->x1 = a1 + da - 1 ;
 			  
 			  /* Create a hit to the first two bases of the acceptor exon (x1+1,x1+2 / a1-1,a1-2) */
 			  nn++ ;
@@ -1496,18 +1496,19 @@ int main (int argc, const char *argv[])
       int maxThreads = 0 ;
       
       int nodes = saBestNumactlNode (&maxThreads) ;
-	
+
+      fprintf (stderr, "mxth0 = %d\n", maxThreads) ;
       vtxtPrintf (txt, "/usr/bin/numactl  --cpunodebind=%d --membind=%d ", nodes, nodes) ;
       for (int i = 0 ; i < argc ; i++)
 	{
-
 	  if (! strcmp (argv[i], "--max_threads"))
 	    mtIsSet = TRUE ;
 	  vtxtPrintf (txt, " %s " , argv[i]) ;
 	}
-      if (! mtIsSet && maxThreads)  /* do not override user's choice */
+      if (! mtIsSet && maxThreads > 0 && maxThreads <= 1024)  /* do not override user's choice */
 	vtxtPrintf (txt, " --max_threads %d " , maxThreads/2) ;
-	  
+      fprintf (stderr, "mxth = %d\n", maxThreads) ;
+
       vtxtPrintf (txt, " --numactl ") ;
 
       fprintf (stderr, "%s\n", vtxtPtr (txt)) ;

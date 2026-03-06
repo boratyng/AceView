@@ -186,7 +186,7 @@ typedef struct bStruct {
   Array confirmedSLs ;
   Array confirmedIntrons ;
   Array doubleIntrons ;
-  Array intronHits ;
+  BigArray intronHits ;
   BOOL isGenome ;
   int isRna ; /* 2: user defined RNA, -2: user defined DNA, 1: autodefined RNA, -1 autodefined DNA */
 
