@@ -1626,6 +1626,7 @@ static void alignAdjustExons (const PP *pp, BB *bb, Array bestAp, Array aa, Arra
  */
 static void findIntronMates (Array aa, Array introns)
 {
+  return ;
   AC_HANDLE h = ac_new_handle () ;
   int iMax = arrayMax (aa) ;
   int jMax = arrayMax (introns) ;
@@ -2653,7 +2654,7 @@ static void alignDoOneRead (const PP *pp, BB *bb
 	  read1 = read ;
 	  if (arrayMax (aa))
 	    { /* create chain scores */
-	      if (0) findIntronMates (aa, introns) ;
+	      findIntronMates (aa, bb->intronHits) ;
 	      alignSelectBestDynamicPath (pp, bb, aaa, aa, dna, chromA, dnaG, dnaGR, bestAp, maxJump, maxJump2) ;
 	    }
 	  arrayMax (aa) = kMax = 0 ;
@@ -2771,6 +2772,7 @@ static void alignDoOneRead (const PP *pp, BB *bb
     }
   if (arrayMax (aa))
     { /* create chain scores */
+      findIntronMates (aa, bb->intronHits) ;
       alignSelectBestDynamicPath (pp, bb, aaa, aa, dna, chromA, dnaG, dnaGR, bestAp, maxJump, maxJump2) ;
     }
   ac_free (h) ;

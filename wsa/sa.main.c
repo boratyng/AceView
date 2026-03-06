@@ -295,12 +295,15 @@ static long int  matchHitsDo (const PP *pp, BB *bbG, BB *bb)
   const long unsigned int mask26 = (1L << 26) - 1 ;
   BigArray hits = bigArrayHandleCreate(hMax, HIT, bb->h);
   bigArray (hitsArray, nHA++, BigArray) = hits ;
+  Array intronHits ;
   const int seedLength = pp->seedLength ;
   const int intronBonus = 1 ;
   int absoluteMax = 0x1 << NTARGETREPEATBITS ;
   int absoluteX1Max = 0x1 << ( 31 - 3 - NTARGETREPEATBITS) ;
   int maxTargetRepeats = pp->maxTargetRepeats  ;
-  
+  int nIntronHits = 0
+    
+  intronHits = bb->intronHits = arrayHandleCreate (10000, HIT, bb->h) ;
   for (int kk = 0; kk < NN ; kk++)
     {
       long int i = 0, iMax = bigArrayMax (bbG->cwsN[kk]);
@@ -491,6 +494,12 @@ static long int  matchHitsDo (const PP *pp, BB *bbG, BB *bb)
 			  if (hit->x1 > absoluteX1Max)
 			    messcrash ("read coordinate x1=%d too large, please edit the source code", x1) ;
 			  hit->x1 = ( hit->x1 << NTARGETREPEATBITS) | 0x1 ;  /* all intron seeds are valuable */
+
+			  intronHit = arrayp (intronHits, nIntronHits++, HIT) ;
+			  intronHit->chrom =  cw1->nam & 0xfffffffe ; /* to select plus strand, kill the last bit */
+			  intronHit->read = rw->nam >> 1 ;
+			  intron->a1 = a1 ;
+			  intron->x1 = a1 + da - 1 ;
 			  
 			  /* Create a hit to the first two bases of the acceptor exon (x1/ a1 + da) */
 			  nn++ ;
@@ -517,6 +526,12 @@ static long int  matchHitsDo (const PP *pp, BB *bbG, BB *bb)
 			{
 			  a1 = cw1->pos ;       /* first base of intron in the genome, in bio coordinates */
 		          x1 = rw->pos + (seedLength - da1) - 1 ;  /* matching base on the read */
+			  
+			  intronHit = arrayp (intronHits, nIntronHits++, HIT) ;
+			  intronHit->chrom =  cw1->nam | 0x1 ; /* to select plus strand, kill the last bit */
+			  intronHit->read = rw->nam >> 1 ;
+			  intron->a1 = a1 ;
+			  intron->x1 = a1 + da - 1 ;
 			  
 			  /* Create a hit to the first two bases of the acceptor exon (x1+1,x1+2 / a1-1,a1-2) */
 			  nn++ ;

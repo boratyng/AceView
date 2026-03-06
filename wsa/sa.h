@@ -186,6 +186,7 @@ typedef struct bStruct {
   Array confirmedSLs ;
   Array confirmedIntrons ;
   Array doubleIntrons ;
+  Array intronHits ;
   BOOL isGenome ;
   int isRna ; /* 2: user defined RNA, -2: user defined DNA, 1: autodefined RNA, -1 autodefined DNA */
 
@@ -335,7 +336,7 @@ typedef struct codeWordsStruct {
 } __attribute__((aligned(16))) CW ;
 
 typedef struct hitStruct {
-  unsigned int read ;  /* index in readDict */
+  unsigned int read ;  /* index in readDict << 2 | (0x2 if read is read2 of a pair) | (0x1 if read is complemented) */
   unsigned int chrom ; /* index in chromDict << 1 | (0x1 if minus strand) */
   unsigned int a1 ;  /* bio coordinates on chrom (base 1) */
   unsigned int x1 ;  /* bio coordinate on read */
