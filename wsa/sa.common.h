@@ -3,6 +3,9 @@
  *
  */
 
+#ifndef SA_COMMON_H
+#define SA_COMMON_H
+
 #define NSHIFTEDTARGETREPEATBITS 8
 
 typedef struct codeWordsStruct {
@@ -19,3 +22,5 @@ typedef struct hitStruct {
   unsigned int a1 ;  /* bio coordinates on chrom (base 1) */
   unsigned int x1 ;  /* bio coordinate on read */
 } __attribute__((aligned(16))) HIT ;
+
+#endif /* SA_COMMON_H */
