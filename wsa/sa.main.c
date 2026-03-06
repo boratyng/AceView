@@ -27,6 +27,7 @@
 
 
 #include "sa.h"
+#include "sa.gpusort.h"
 
 static int NN = 1 ;
 
@@ -1019,6 +1020,9 @@ static void wholeWork (const void *vp)
       saCodeSequenceSeeds (pp, &bb, pp->iStep, FALSE) ;
 
       if (1 || pp->debug) printf ("+++ %s: Start wholeWork agent %d, lane %d, %ld bases against %ld target bases\n", timeBufShowNow (tBuf), pp->agent, bb.lane, bb.length, bbG.length) ;
+
+      saGPUMatchHits(pp->tFileBinaryCwsName, NN);
+
 
       /* sort words */
       for (int k = 0 ; k < NN ; k++)

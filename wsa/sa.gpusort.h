@@ -9,6 +9,8 @@ extern "C" {
 
 void saGPUSort (char *cp, long int number_of_records, int type);
 
+void saGPUMatchHits(const char* index_path, unsigned int num_chunks);
+
 #ifdef __cplusplus
 }
 #endif

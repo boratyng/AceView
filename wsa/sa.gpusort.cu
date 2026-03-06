@@ -7,11 +7,13 @@
  * Created: December 30, 2025
  */
 
+#include <sys/mman.h>
 #include <thrust/host_vector.h>
 #include <thrust/device_vector.h>
 #include <thrust/sort.h>
 #include <chrono>
 #include <iostream>
+#include <filesystem>
 
 #include "sa.gpusort.h"
 #include "sa.common.h"
@@ -105,4 +107,25 @@ void saGPUSort (char *cp, long int number_of_records, int type)
     };
 
     return ;
+}
+
+
+void saGPUMatchHits(const char* path, unsigned int num_chunks)
+{
+    for (int i=0;i < num_chunks;i++) {
+        std::string chunk_file = std::format("{}.{}", path, i);
+        size_t file_size = static_cast<size_t>(std::filesystem::file_size(chunk_file));
+        int fd = open(chunk_file.c_str(), O_RDONLY);
+        void* p = mmap(nullptr, file_size, PROT_READ, MAP_SHARED, fd, 0);
+        size_t chunk_size = file_size / sizeof(CW);
+
+        auto start = std::chrono::high_resolution_clock::now();
+        CW *index_chunk = static_cast<CW*>(p);
+        thrust::device_vector<CW> d_vec(index_chunk, index_chunk + chunk_size);
+        auto end = std::chrono::high_resolution_clock::now();
+        std::cerr << "Copy index partition " << i << " to GPU (" << chunk_size << "): "  << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << "ms" << std::endl;
+
+        munmap(p, file_size);
+        close(fd);
+    }
 }
