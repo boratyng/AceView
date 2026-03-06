@@ -12,7 +12,7 @@
  * This module analyses the hardware
  * to bing the aligner to the least buzy core
 */
-
+#include <unistd.h>       
 #ifdef __linux__
 /* ==================== LINUX ONLY ==================== */
 

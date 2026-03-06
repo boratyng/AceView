@@ -1633,7 +1633,7 @@ static void findIntronMates (Array aa, BigArray introns)
   HIT *vp = jMax ? bigArrp (introns, 0, HIT) :  0 ;
 
   if (! jMax) return ;
-  return ; 
+  if (0) return ;
   AC_HANDLE h = ac_new_handle () ;
   Array e2d = arrayHandleCreate (2*iMax, HIT, h) ;
   Array e2a = arrayHandleCreate (2*iMax, HIT, h) ;
