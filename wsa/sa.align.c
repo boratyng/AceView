@@ -200,7 +200,7 @@ static BOOL alignExtendHit (Array dna, Array dnaG, Array dnaGR, Array err
   int a1 = *a1p, a2 = *a2p ;
   arrayMax (err) = 0 ;
 
-  errMax = (0 && isIntron) ? 0 : errMax ;
+  errMax = (1 && isIntron) ? 0 : errMax ;
   
   
 
