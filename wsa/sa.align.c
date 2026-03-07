@@ -1846,7 +1846,7 @@ static void alignSelectBestDynamicPath (const PP *pp, BB *bb, Array aaa, Array a
 	      if (!foundI2) i02 = i2 + 1 ;
 	      continue ;
 	    }  
-	  if (up->mateA2 > 0 && up->mateA2 != i2 + 1)
+	  if (up->mateA1 > 0 && up->mateA1 != i2 + 1)
 	    continue ;
 	  foundI2 = TRUE ;
 	  if (vp->chrom == chrom
