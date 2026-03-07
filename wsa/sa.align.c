@@ -1635,8 +1635,8 @@ static void findIntronMates (Array aa, BigArray introns)
   if (! jMax) return ;
   if (0) return ;
   AC_HANDLE h = ac_new_handle () ;
-  Array e2d = arrayHandleCreate (2*iMax, HIT, h) ;
-  Array e2a = arrayHandleCreate (2*iMax, HIT, h) ;
+  BigArray e2d = bigArrayHandleCreate (2*iMax, HIT, h) ;
+  BigArray e2a = bigArrayHandleCreate (2*iMax, HIT, h) ;
   
   /* associate exons to donors and acceptors */
   for (int ii = 0 ; ii < iMax ; ii++)
@@ -1645,17 +1645,26 @@ static void findIntronMates (Array aa, BigArray introns)
       int chrom = up->chrom ;
       int read = up->read ;
       long int dj = jMax / 16 ;
+
+      if (dj)
+	{
+	  for (; jj < jMax ; jj += dj, vp += dj)
+	    {
+	      if (vp->read < read) continue ;
+	      if (vp->read > read) break ;
+	    }
+	  if (jj > 0)
+	    {
+	      vp -= dj ;
+	      jj -= dj ;
+	    }
+	  if (jj < 0)
+	    {
+	      jj = 0 ;
+	      vp = bigArrp (introns, 0, HIT) ;
+	    }
+	}
       
-      for (; jj < jMax ; jj += dj, vp += dj)
-	{
-	  if (vp->read < read) continue ;
-	  if (vp->read > read) break ;
-	}
-      if (jj > 0)
-	{
-	  vp -= dj ;
-	  jj -= dj ;
-	}
       for (; jj > 0 && vp->read >= read ; jj--, vp--)
 	;
       
@@ -1665,12 +1674,12 @@ static void findIntronMates (Array aa, BigArray introns)
 	  if (vp->read > read) break ;
 	  if (vp->chrom == chrom && vp->a1 <= up->a2 + 1 && vp->a1 > up->a1)
 	    {
-	      HIT *hp = arrayp (e2d, ne2d++, HIT) ;
+	      HIT *hp = bigArrayp (e2d, ne2d++, HIT) ;
 	      hp->a1 = ii ; hp->x1 = (int)jj ;
 	    }
 	  if (vp->chrom == chrom && vp->x1 < up->a2 && vp->x1 >= up->a1 - 1)
 	    {
-	      HIT *hp = arrayp (e2a, ne2a++, HIT) ;
+	      HIT *hp = bigArrayp (e2a, ne2a++, HIT) ;
 	      hp->a1 = ii ; hp->x1 = (int)jj ;
 	    }
 	}
@@ -1680,15 +1689,15 @@ static void findIntronMates (Array aa, BigArray introns)
   int ie2a = 0, ie2d = 0 ;
   for (ie2d = 0 ; ie2d < ne2d ; ie2d++)
     {
-      HIT *xp = arrp (e2d, ie2d, HIT) ;
-      int mate = -1, nMate = 0, nd = 0 ; /* number of recognized donors in this exon */
+      HIT *xp = bigArrp (e2d, ie2d, HIT) ;
+      int mate = -1, nMate = 0, nd = -1 ; /* number of recognized donors in this exon */
       int ii = xp->a1 ; /* my exon */
-      while (ie2d + nd < ne2d && xp[nd].a1 == xp[0].a1)
+      while (nd++, ie2d + nd < ne2d && xp[nd].a1 == xp[0].a1)
 	{
 	  /* can we find another exon corresponding to the acceptor */
 	  for (ie2a = 0 ; ie2a < ne2a ; ie2a++)
 	    {
-	      HIT *yp = arrp (e2a, ie2a, HIT) ;
+	      HIT *yp = bigArrp (e2a, ie2a, HIT) ;
 	      if (yp->x1 == xp->x1 && yp->a1 != ii) 
 		{ nMate++ ; mate = yp->a1 ; }  /* common exon */
 	    }
@@ -1701,15 +1710,15 @@ static void findIntronMates (Array aa, BigArray introns)
     }
   for (ie2a = 0 ; ie2a < ne2a ; ie2a++)
     {
-      HIT *xp = arrp (e2a, ie2a, HIT) ;
-      int mate = -1, nMate = 0, na = 0 ; /* number of recognized donors in this exon */
+      HIT *xp = bigArrp (e2a, ie2a, HIT) ;
+      int mate = -1, nMate = 0, na = -1 ; /* number of recognized donors in this exon */
       int ii = xp->a1 ; /* my exon */
-      while (ie2a + na < ne2a && xp[na].a1 == xp[0].a1)
+      while (na++, ie2a + na < ne2a && xp[na].a1 == xp[0].a1)
 	{
 	  /* can we find another exon corresponding to the donor */
 	  for (ie2d = 0 ; ie2d < ne2d ; ie2d++)
 	    {
-	      HIT *yp = arrp (e2d, ie2d, HIT) ;
+	      HIT *yp = bigArrp (e2d, ie2d, HIT) ;
 	      if (yp->x1 == xp->x1 && yp->a1 != ii) 
 		{ nMate++ ; mate = yp->a1 ; }  /* common exon */
 	    }
@@ -1731,13 +1740,13 @@ static void findIntronMates (Array aa, BigArray introns)
       ia = up->mateA1 ;
       if (id > 0)
 	{
-	  wp = arrp (aa, id, ALIGN) ;
+	  wp = arrp (aa, id - 1, ALIGN) ;
 	  if (wp->mateA1 != ii + 1)
 	    up->mateA2 = 0 ;
 	}
       if (ia > 0)
 	{
-	  wp = arrp (aa, ia, ALIGN) ;
+	  wp = arrp (aa, ia - 1, ALIGN) ;
 	  if (wp->mateA2 != ii + 1)
 	    up->mateA1 = 0 ;
 	}
@@ -3029,8 +3038,11 @@ void saAlignDo (const PP *pp, BB *bb)
       }
 
   if (bb->intronHits && bigArrayMax (bb->intronHits) > 1)
+    {
       saSort (bb->intronHits, 2) ; /* hitReadOrder */
-
+      bigArrayCompress (bb->intronHits) ;
+    }
+  
  secondPass:
   iMax = bigArrayMax (bb->hits) ;
   h = ac_new_handle () ;
