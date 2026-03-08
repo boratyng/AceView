@@ -14,6 +14,8 @@
 */
 #include <unistd.h>       
 #include <stdio.h>
+#include <sys/sysinfo.h>  // for get_nprocs_conf() alternative if needed
+#include <unistd.h>       // usleep, access
 #ifdef __linux__
 /* ==================== LINUX ONLY ==================== */
 
