@@ -1799,7 +1799,6 @@ int main (int argc, const char *argv[])
   if (p.createIndex)
     { nAgents = 1 ; maxThreads = 1 ; p.nBlocks = 1 ; }
 
-
   /****************** stepping when constructing sequence seeds ********************/
   p.iStep = 0 ;   /* read default = tStep/2 set in  saConfigCheckTargetIndex */
   p.tStep = 0 ;   /* default 2 or 4 set in createIndex or read in existing index */
@@ -1866,7 +1865,8 @@ int main (int argc, const char *argv[])
   
   /*****************  Start working ***********************************************/
   t0 = timeNow () ;
-  printf ("%s: Start\n", timeBufShowNow (tBuf0)) ;
+  printf ("##################### %s: Start\t", timeBufShowNow (tBuf0)) ;
+  printf ("\t\tnA=%d nB=%d nT=%d\n", nAgents, p.nBlocks, maxThreads) ;
 
   cpuStats = arrayHandleCreate (1024, CpuSTAT, h) ;
   p.runStats = arrayHandleCreate (1024, RunSTAT, h) ;
