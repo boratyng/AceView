@@ -14,13 +14,19 @@
 */
 #include <stdio.h>
 #include <unistd.h>       // usleep, access
+
+#ifdef __APPLE__
+#include <mach/mach.h>      // task_info, host_statistics
+#include <sys/sysctl.h>     // sysctl for HW_MEMSIZE
+#endif
+
+
 #ifdef __linux__
 /* ==================== LINUX ONLY ==================== */
 
 #include <dirent.h>
 #include <sys/types.h>
 #include <sys/sysinfo.h>  // for get_nprocs_conf() alternative if needed
-#include <unistd.h>       // usleep, access
 #include <time.h>         // time(NULL)
 #include <stdlib.h>       // random, srandom
 #include <string.h>       // random, srandom
