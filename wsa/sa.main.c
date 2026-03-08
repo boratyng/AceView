@@ -1773,7 +1773,7 @@ int main (int argc, const char *argv[])
     messcrash ("The source code assumes that long unsigned ints use 64 bits not %d, sorry", 8 * sizeof (long unsigned int)) ;
 
   /***************** amount or parallelization **************************/
-  int nCPU = get_number_of_cpus () ;
+  int nCPU = get_number_of_cpus_per_node () ;
 
   /* defaults */
   nAgents = 3 * nCPU / 2 ;  /* number of aligner agents */

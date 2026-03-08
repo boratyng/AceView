@@ -102,8 +102,10 @@ setenv SV     v71.81.18M.e4.W.feb22    # edited intron boundaries using the new 
 setenv SVlast v71.81.18M.e4.W.feb22
 setenv SV     v72.81.18M.e4.W.mars5    # edited del/ins using sa.test.c 
 setenv SVlast v72.81.18M.e4.W.mars5
-#setenv SV     v73.81.18M.e4.W.mars5    # favor the introns seeds by contructing immediatly clipped exons
-#setenv SVlast v73.81.18M.e4.W.mars5
+setenv SV     v73.81.18M.e4.W.mars5    # favor the introns seeds by contructing immediatly clipped exons
+setenv SVlast v73.81.18M.e4.W.mars5    # use 3/2 n_cpus, hence 176 on the farm with 2 nodes, then we ran out of RAM
+setenv SV     v74.81.18M.e4.W.mars8    # use 3/2n_cpus per nonde hence 32 on the farm
+setenv SVlast v74.81.18M.e4.W.mars8
 
 if ($SV == $SVlast) then
   \cp  /home/mieg/ace/bin.LINUX_4_OPT/sortalign bin/sortalign.$SV
@@ -972,6 +974,7 @@ foreach species (any)
 
     cat $e | grep TIMING | gawk -F '\t' '{n=split($5,aa,":");if(n==3)s=3600*aa[1]+60*aa[2]+aa[3];else s=60*aa[1]+aa[2];printf("%d\t",s);print;}' | sort -k 1nr | tail -1 > _t
     set n=`cat _t | gawk '/TIMING/{n++}END{print n+0}'`
+    set n=`cat $e | gawk '/Killed/{n=-1;}END{print n}' n=$n`
     if ($n == 1) then
       set wallT=`cat _t | gawk -F '\t' '{print $6}'`
       set cpu=`cat _t | gawk -F '\t' '{print $8+$10}'`
