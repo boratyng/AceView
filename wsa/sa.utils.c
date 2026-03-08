@@ -29,26 +29,6 @@
 #include <sys/sysctl.h>
 #endif
 
-int get_number_of_cpus(void)
-{
-#ifdef __APPLE__
-    /* macOS specific path */
-    int n = 0;
-    size_t len = sizeof(n);
-    int mib[2] = { CTL_HW, HW_NCPU };
-    if (sysctl(mib, 2, &n, &len, NULL, 0) == 0 && n > 0) {
-        return n;
-    }
-    return 1;
-#else
-    /* Linux and other Unix systems */
-    long n = sysconf(_SC_NPROCESSORS_ONLN);
-    if (n <= 0)
-        n = sysconf(_SC_NPROCESSORS_CONF);
-    return (n > 0) ? (int)n : 1;
-#endif
-}
-
 #ifdef __linux__
 /* ==================== LINUX ONLY ==================== */
 
@@ -294,6 +274,26 @@ if (current_blocks < N && get_current_rss_kb() + block_ram_estimate < projected_
     it naturally limits to fewer blocks. Tune estimates/thresholds based on tests.
 #endif
     
+int get_number_of_cpus(void)
+{
+#ifdef __APPLE__
+    /* macOS specific path */
+    int n = 0;
+    size_t len = sizeof(n);
+    int mib[2] = { CTL_HW, HW_NCPU };
+    if (sysctl(mib, 2, &n, &len, NULL, 0) == 0 && n > 0) {
+        return n;
+    }
+    return 1;
+#else
+    /* Linux and other Unix systems */
+    long n = sysconf(_SC_NPROCESSORS_ONLN);
+    if (n <= 0)
+        n = sysconf(_SC_NPROCESSORS_CONF);
+    return (n > 0) ? (int)n : 1;
+#endif
+}
+
 
 int get_number_of_cpus_per_node (void)
 {
@@ -327,7 +327,7 @@ int get_number_of_cpus_per_node (void)
 
 fallback:
     /* Fallback: return total CPUs on the machine */
-    long int n = sysconf(_SC_NPROCESSORS_ONLN);
+    long int n = get_number_of_cpus () ;
     return (n > 0) ? (int)n : 1;
 }
 
