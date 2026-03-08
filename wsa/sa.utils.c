@@ -31,8 +31,22 @@
 
 int get_number_of_cpus(void)
 {
+#ifdef __APPLE__
+    /* macOS specific path */
+    int n = 0;
+    size_t len = sizeof(n);
+    int mib[2] = { CTL_HW, HW_NCPU };
+    if (sysctl(mib, 2, &n, &len, NULL, 0) == 0 && n > 0) {
+        return n;
+    }
+    return 1;
+#else
+    /* Linux and other Unix systems */
     long n = sysconf(_SC_NPROCESSORS_ONLN);
+    if (n <= 0)
+        n = sysconf(_SC_NPROCESSORS_CONF);
     return (n > 0) ? (int)n : 1;
+#endif
 }
 
 #ifdef __linux__
