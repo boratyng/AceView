@@ -15,7 +15,7 @@
 #include <stdio.h>
 #include <unistd.h>       // usleep, access
 
-#ifdef __APPLE__
+#ifdef DARWIN
 #include <mach/mach.h>      // task_info, host_statistics
 #include <sys/sysctl.h>     // sysctl for HW_MEMSIZE
 #endif
