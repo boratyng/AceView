@@ -13,11 +13,11 @@
  * to bing the aligner to the least buzy core
 */
 #include <unistd.h>       
+#include <stdio.h>
 #ifdef __linux__
 /* ==================== LINUX ONLY ==================== */
 
 #include <dirent.h>
-#include <stdio.h>
 #include <sys/types.h>
 #include <sys/sysinfo.h>  // for get_nprocs_conf() alternative if needed
 #include <unistd.h>       // usleep, access
