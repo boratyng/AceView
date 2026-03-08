@@ -297,38 +297,37 @@ int get_number_of_cpus(void)
 
 int get_number_of_cpus_per_node (void)
 {
-    /* First, find which NUMA node we are currently running on */
-    FILE *f = fopen("/proc/self/status", "r");
-    if (!f) goto fallback;
-
-    char line[256];
-    int current_node = 0;
-
-    while (fgets(line, sizeof(line), f)) {
-        if (sscanf(line, "Mems_allowed_list: %d", &current_node) == 1) {
-            break;
-        }
+ /* First, find which NUMA node we are currently running on */
+  FILE *f = fopen("/proc/self/status", "r");
+  if (!f) goto fallback;
+  
+  char line[256];
+  int current_node = 0;
+  
+  while (fgets(line, sizeof(line), f)) {
+    if (sscanf(line, "Mems_allowed_list: %d", &current_node) == 1) {
+      break;
     }
+  }
+  fclose(f);
+  
+  /* Now count how many CPUs belong to this node */
+  char path[128];
+  snprintf(path, sizeof(path), "/sys/devices/system/node/node%d/cpumap", current_node);
+  
+  f = fopen(path, "r");
+  if (!f) goto fallback;
+
+  unsigned long long map = 0;
+  if (fscanf(f, "%llx", &map) == 1) {
     fclose(f);
+    return __builtin_popcountll(map);   // count the number of set bits
+  }
+  fclose(f);
 
-    /* Now count how many CPUs belong to this node */
-    char path[128];
-    snprintf(path, sizeof(path), "/sys/devices/system/node/node%d/cpumap", current_node);
-
-    f = fopen(path, "r");
-    if (!f) goto fallback;
-
-    unsigned long long map = 0;
-    if (fscanf(f, "%llx", &map) == 1) {
-        fclose(f);
-        return __builtin_popcountll(map);   // count the number of set bits
-    }
-    fclose(f);
-
-fallback:
-    /* Fallback: return total CPUs on the machine */
-    long int n = get_number_of_cpus () ;
-    return (n > 0) ? (int)n : 1;
+ fallback:
+  /* Fallback: return total CPUs on the machine */
+  return get_number_of_cpus () ;
 }
 
 #ifdef JUNK
