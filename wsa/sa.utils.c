@@ -12,27 +12,32 @@
  * This module analyses the hardware
  * to bing the aligner to the least buzy core
 */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>  // sysconf, getpid, usleep, access, etc.
 
-#ifdef DARWIN
-#include <mach/mach.h>      // task_info, host_statistics
-#include <sys/sysctl.h>     // sysctl for HW_MEMSIZE
+#ifdef __linux__
+#include <dirent.h>
+#include <sys/types.h>
+#include <time.h>         // time(NULL)
 #endif
 
+#ifdef __APPLE__
+#include <mach/mach.h>
+#include <sys/sysctl.h>
+#endif
 
 #ifdef __linux__
 /* ==================== LINUX ONLY ==================== */
 
-#include <dirent.h>
-#include <sys/types.h>
-#include <sys/sysinfo.h>  // for get_nprocs_conf() alternative if needed
-#include <time.h>         // time(NULL)
-#include <stdlib.h>       // random, srandom
-#include <string.h>       // random, srandom
+/*
+  #include <sys/sysinfo.h>  // for get_nprocs_conf() alternative if needed
 
+#include <stdlib.h>       // random, srandom
+
+*/
 #define MAX_CPUS 256  // Adjust if your machine has more
 
 typedef struct {
@@ -181,7 +186,7 @@ int saBestNumactlNode (int *maxThreadsp)
 }
 #endif
 /* ==================== END LINUX ONLY ==================== */
-
+#ifdef JUNK
 #include <sys/resource.h>
 
 /* peak process memory on linux, average on mac */
@@ -241,6 +246,75 @@ system_fallback:
     long pages = sysconf(_SC_AVPHYS_PAGES);
     long page_size = sysconf(_SC_PAGE_SIZE);
     return (pages * page_size) / 1024;  // KB
+}
+#endif
+/* Returns estimated available RAM in KB on current node (Linux) or total RAM (macOS) */
+long get_available_ram_kb(void)
+{
+#ifdef __linux__
+    // Try per-node memory first (when running under numactl)
+    FILE *f = fopen("/proc/self/status", "r");
+    if (f) {
+        char line[256];
+        int node = -1;
+        while (fgets(line, sizeof(line), f)) {
+            if (strncmp(line, "Mems_allowed_list:", 18) == 0) {
+                sscanf(line + 18, "%d", &node);
+                break;
+            }
+        }
+        fclose(f);
+
+        if (node >= 0) {
+            char path[128];
+            snprintf(path, sizeof(path), "/sys/devices/system/node/node%d/meminfo", node);
+            f = fopen(path, "r");
+            if (f) {
+                long free_kb = 0, cached = 0, inactive = 0;
+                while (fgets(line, sizeof(line), f)) {
+                    if (strstr(line, "MemFree:"))     sscanf(line, "%*s %ld", &free_kb);
+                    if (strstr(line, "Cached:"))      sscanf(line, "%*s %ld", &cached);
+                    if (strstr(line, "Inactive:"))    sscanf(line, "%*s %ld", &inactive);
+                }
+                fclose(f);
+                if (free_kb > 0)
+                    return free_kb + cached + inactive;
+            }
+        }
+    }
+
+    // Linux system-wide fallback
+    f = fopen("/proc/meminfo", "r");
+    if (f) {
+        char line[256];
+        long avail = 0;
+        while (fgets(line, sizeof(line), f)) {
+            if (strncmp(line, "MemAvailable:", 13) == 0) {
+                sscanf(line + 13, "%ld", &avail);
+                break;
+            }
+        }
+        fclose(f);
+        if (avail > 0) return avail;
+    }
+
+#elif defined(__APPLE__)
+    // macOS: Get total physical RAM and return ~70% as "available"
+    int64_t total_bytes = 0;
+    size_t len = sizeof(total_bytes);
+    if (sysctlbyname("hw.memsize", &total_bytes, &len, NULL, 0) == 0) {
+        return (long)(total_bytes / 1024LL * 70 / 100);   // conservative 70%
+    }
+#endif
+
+    // Final fallback using sysconf (works on both, but less accurate on macOS)
+    long pages = sysconf(_SC_PHYS_PAGES);
+    long page_size = sysconf(_SC_PAGE_SIZE);
+    if (pages > 0 && page_size > 0) {
+        return (pages * page_size) / 1024;
+    }
+
+    return 1024 * 1024;   // 1 GB safety fallback
 }
 
 #ifdef JUNK
