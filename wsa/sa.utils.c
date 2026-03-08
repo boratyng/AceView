@@ -29,6 +29,12 @@
 #include <sys/sysctl.h>
 #endif
 
+int get_number_of_cpus(void)
+{
+    long n = sysconf(_SC_NPROCESSORS_ONLN);
+    return (n > 0) ? (int)n : 1;
+}
+
 #ifdef __linux__
 /* ==================== LINUX ONLY ==================== */
 
@@ -275,12 +281,6 @@ if (current_blocks < N && get_current_rss_kb() + block_ram_estimate < projected_
 #endif
     
 
-int get_number_of_cpus(void)
-{
-    long n = sysconf(_SC_NPROCESSORS_ONLN);
-    return (n > 0) ? (int)n : 1;
-}
-
 int get_number_of_cpus_per_node (void)
 {
     /* First, find which NUMA node we are currently running on */
@@ -323,10 +323,6 @@ foreach ii (1 2 3 4)
   \rm -rf titi$ii ; /usr/bin/time -f "TIMING E %E U %U M %M P %P" ~/ace/bin.LINUX_4_OPT/sortalign -x Aligners/011_SortAlignG6R3/IDX.GRCh38.18.81 -i Fasta/iRefSeq38/iRefSeq38.fasta.gz --align -o titi$ii >& titi$ii.err &
 sleep 4
 end
-
-#endif
-
-#ifdef JUNK
 
 #endif
 
