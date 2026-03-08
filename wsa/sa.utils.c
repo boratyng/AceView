@@ -13,7 +13,9 @@
  * to bing the aligner to the least buzy core
 */
 #include <stdio.h>
-#include <unistd.h>       // usleep, access
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>  // sysconf, getpid, usleep, access, etc.
 
 #ifdef DARWIN
 #include <mach/mach.h>      // task_info, host_statistics
