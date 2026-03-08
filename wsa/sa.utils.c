@@ -12,9 +12,7 @@
  * This module analyses the hardware
  * to bing the aligner to the least buzy core
 */
-#include <unistd.h>       
 #include <stdio.h>
-#include <sys/sysinfo.h>  // for get_nprocs_conf() alternative if needed
 #include <unistd.h>       // usleep, access
 #ifdef __linux__
 /* ==================== LINUX ONLY ==================== */
@@ -176,18 +174,91 @@ int saBestNumactlNode (int *maxThreadsp)
 #endif
 /* ==================== END LINUX ONLY ==================== */
 
+#include <sys/resource.h>
+
+/* peak process memory on linux, average on mac */
+long get_current_rss_kb(void) {
+    struct rusage ru;
+    if (getrusage(RUSAGE_SELF, &ru) == 0) {
+        return ru.ru_maxrss;  // KB on Linux/macOS
+    }
+    return -1;
+}
+
+
+/* Returns available RAM (in KB) on the current NUMA node, or system total if no NUMA */
+long get_available_ram_kb(void) {
+    long free_kb = 0, cached_kb = 0, inactive_kb = 0;
+
+#ifdef __linux__
+    // Find current NUMA node from /proc/self/status (Mems_allowed_list)
+    FILE *f = fopen("/proc/self/status", "r");
+    if (!f) goto system_fallback;
+
+    char line[256];
+    int node = -1;
+    while (fgets(line, sizeof(line), f)) {
+        if (strncmp(line, "Mems_allowed_list:", 18) == 0) {
+            sscanf(line + 18, "%d", &node);
+            break;
+        }
+    }
+    fclose(f);
+    if (node < 0) goto system_fallback;
+
+    // Now read meminfo for this node
+    char path[128];
+    snprintf(path, sizeof(path), "/sys/devices/system/node/node%d/meminfo", node);
+    f = fopen(path, "r");
+    if (!f) goto system_fallback;
+
+    while (fgets(line, sizeof(line), f)) {
+        if (strncmp(line, "Node %*d MemFree:", 17) == 0) {
+            sscanf(line + 17, "%ld kB", &free_kb);
+        } else if (strncmp(line, "Node %*d Inactive:", 18) == 0) {
+            sscanf(line + 18, "%ld kB", &inactive_kb);
+        } else if (strncmp(line, "Node %*d Cached:", 16) == 0) {
+            sscanf(line + 16, "%ld kB", &cached_kb);
+        }
+    }
+    fclose(f);
+
+    if (free_kb > 0) {
+        return free_kb + cached_kb + inactive_kb;  // Reclaimable available
+    }
+#endif
+
+system_fallback:
+    // Fallback: system-wide available (from /proc/meminfo on Linux, or sysconf on others)
+    long pages = sysconf(_SC_AVPHYS_PAGES);
+    long page_size = sysconf(_SC_PAGE_SIZE);
+    return (pages * page_size) / 1024;  // KB
+}
+
+#ifdef JUNK
+In your dripper: Before launching a new block, check:
+  In your dripper: Before launching a new block, check:
+
+  long avail_kb = get_available_ram_kb();
+long projected_kb = avail_kb * 0.8;  // 80% threshold
+long block_ram_estimate = 20LL * 1024 * 1024;  // e.g., 20 GB per block in KB
+
+if (current_blocks < N && get_current_rss_kb() + block_ram_estimate < projected_kb) {
+    // Safe to drip new block
+} else {
+    usleep(100000);  // Wait and retry every 0.1 s
+}
+
+  This auto-balances: On multi-node (e.g., 4x24 CPU, assume 128 GB/node),
+    it caps blocks to fit RAM. On single-node (4 CPU, say 32 GB total),
+    it naturally limits to fewer blocks. Tune estimates/thresholds based on tests.
+#endif
+    
+
 int get_number_of_cpus(void)
 {
-  int n = (int) sysconf(_SC_NPROCESSORS_ONLN);
-  if (n > 0)
-    return n ;
-  
-  /* Fallback for some older Unix systems */
-  n = (int) sysconf(_SC_NPROCESSORS_CONF) ;
-  if (n > 0)
-    return n ;
-  
-  return 1 ;   /* ultimate safety fallback */
+    long n = sysconf(_SC_NPROCESSORS_ONLN);
+    return (n > 0) ? (int)n : 1;
 }
 
 int get_number_of_cpus_per_node (void)
