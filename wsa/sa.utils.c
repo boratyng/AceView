@@ -220,7 +220,7 @@ int get_number_of_cpus_per_node (void)
 
 fallback:
     /* Fallback: return total CPUs on the machine */
-    long n = sysconf(_SC_NPROCESSORS_ONLN);
+    long int n = sysconf(_SC_NPROCESSORS_ONLN);
     return (n > 0) ? (int)n : 1;
 }
 
