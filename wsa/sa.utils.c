@@ -186,68 +186,6 @@ int saBestNumactlNode (int *maxThreadsp)
 }
 #endif
 /* ==================== END LINUX ONLY ==================== */
-#ifdef JUNK
-#include <sys/resource.h>
-
-/* peak process memory on linux, average on mac */
-long get_current_rss_kb(void) {
-    struct rusage ru;
-    if (getrusage(RUSAGE_SELF, &ru) == 0) {
-        return ru.ru_maxrss;  // KB on Linux/macOS
-    }
-    return -1;
-}
-
-
-/* Returns available RAM (in KB) on the current NUMA node, or system total if no NUMA */
-long get_available_ram_kb(void) {
-    long free_kb = 0, cached_kb = 0, inactive_kb = 0;
-
-#ifdef __linux__
-    // Find current NUMA node from /proc/self/status (Mems_allowed_list)
-    FILE *f = fopen("/proc/self/status", "r");
-    if (!f) goto system_fallback;
-
-    char line[256];
-    int node = -1;
-    while (fgets(line, sizeof(line), f)) {
-        if (strncmp(line, "Mems_allowed_list:", 18) == 0) {
-            sscanf(line + 18, "%d", &node);
-            break;
-        }
-    }
-    fclose(f);
-    if (node < 0) goto system_fallback;
-
-    // Now read meminfo for this node
-    char path[128];
-    snprintf(path, sizeof(path), "/sys/devices/system/node/node%d/meminfo", node);
-    f = fopen(path, "r");
-    if (!f) goto system_fallback;
-
-    while (fgets(line, sizeof(line), f)) {
-        if (strncmp(line, "Node %*d MemFree:", 17) == 0) {
-            sscanf(line + 17, "%ld kB", &free_kb);
-        } else if (strncmp(line, "Node %*d Inactive:", 18) == 0) {
-            sscanf(line + 18, "%ld kB", &inactive_kb);
-        } else if (strncmp(line, "Node %*d Cached:", 16) == 0) {
-            sscanf(line + 16, "%ld kB", &cached_kb);
-        }
-    }
-    fclose(f);
-
-    if (free_kb > 0) {
-        return free_kb + cached_kb + inactive_kb;  // Reclaimable available
-    }
-#endif
-
-system_fallback:
-    // Fallback: system-wide available (from /proc/meminfo on Linux, or sysconf on others)
-    long pages = sysconf(_SC_AVPHYS_PAGES);
-    long page_size = sysconf(_SC_PAGE_SIZE);
-    return (pages * page_size) / 1024;  // KB
-}
-#endif
 /* Returns estimated available RAM in KB on current node (Linux) or total RAM (macOS) */
 long get_available_ram_kb(void)
 {
