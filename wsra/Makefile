@@ -3,9 +3,12 @@
 ifeq ($(shell uname),Darwin)
 	STLINC = /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1
 
-	ifeq ($(shell uname -m),aarch64)
+        UNAME_ARCH = $(shell uname -m)
+	ifeq ($(UNAME_ARCH),aarch66)
 		ARCH = arm
-	else
+	else ifeq ($(UNAME_ARCH),arm64)
+                ARCH = arm
+        else
 		ARCH = x86
 	endif
 	OS = mac-$(ARCH)
