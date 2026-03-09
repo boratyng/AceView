@@ -1551,7 +1551,7 @@ static void alignAdjustExons (const PP *pp, BB *bb, Array bestAp, Array aa, Arra
 	    }
 
 	  /* merge */
-	  int k ;
+	  int i, k ;
 	  for (k = 0, vp = up ; (k < arrayMax (aa) - 1) && (vp->chain == chain || vp->chain == -1) ; k++, vp++)
 	    if (vp[0].chain == chain && vp[1].chain == chain && vp[1].x1 == vp[0].x2 + 1 && vp[1].a1 == vp[0].a2 + 1)
 	      {  /* this happens in rafia */
@@ -1569,19 +1569,33 @@ static void alignAdjustExons (const PP *pp, BB *bb, Array bestAp, Array aa, Arra
 		      array (vp[0].errors, iMax + j, A_ERR) = array (vp[1].errors, j, A_ERR) ;
 		    vp[0].nErr = iMax + jMax ;
 		  }
-
+		vp[0].donor = vp[0].donor ?  vp[0].donor : vp[1].donor ;
+		vp[0].acceptor = vp[0].acceptor ?  vp[0].acceptor : vp[1].acceptor ;
 
 		vp[1].chain = -1 ;
 		vp[1].nErr = 0 ; vp[1].errors = 0 ;
 	      }
 
+	  /* clean up */
+	  int iMax = arrayMax (aa) ;
+	  for (vp = up, i = k = 0 ; i < iMax ; i++, vp++)
+	    if(vp->chain == chain)
+	      {
+		if (k < i) up[k] = up[i] ;
+		k++ ;
+	      }
+	  arrayMax (aa) = k ;
+	  
 	  if (! isDown)
 	    {
 	      int nvp = 0 ;
-	      for (vp = up ; vp->chain == chain ; vp++)
+	      int ii, iMax = arrayMax (aa) ;
+	      up = arrayp (aa, 0, ALIGN) ;
+	      for (vp = up, ii = 0 ; ii < iMax ; vp++)
 		{
 		  int dummy = vp->a1 ; vp->a1 = vp->a2 ; vp->a2 = dummy ;
-		  dummy = vp->x1 ; vp->x1 = lnShort - vp->x2 + 1 ; vp->x2 = lnShort - dummy + 1 ;
+		  dummy = vp->x1 ; vp->x1 = vp->x2 ; vp->x2 = dummy ;
+		  vp->x1 = lnShort - vp->x1 + 1 ; vp->x2 = lnShort - vp->x2 + 1 ;
 		  nvp++ ;
 		  
 		  /* flip the error positions */
@@ -1598,11 +1612,11 @@ static void alignAdjustExons (const PP *pp, BB *bb, Array bestAp, Array aa, Arra
 			}
 		    }
 		}
-	      for (int i = 0 ; i < nvp/2 ; i++)
+	      for (ii = 0 ; ii < nvp/2 ; ii++)
 		{
-		  ALIGN wp = up[i] ;
-		  up[i] = up[nvp - i - 1] ;
-		  up[nvp-i - 1] = wp ;
+		  ALIGN wp = up[ii] ;
+		  up[ii] = up[nvp - ii - 1] ;
+		  up[nvp -ii - 1] = wp ;
 		}
 	    }
 	}

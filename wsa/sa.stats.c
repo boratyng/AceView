@@ -96,11 +96,13 @@ void saCpuStatExport (const PP *pp, Array stats)
 
 /*************************************************************************************/
 
-static int confirmedIntronsCountSites (const PP *pp, int run)
+static int confirmedIntronsCountSites (const PP *pp, int run, RunSTAT *up)
 {
   int nn = 0, ii, iMax = arrayMax (pp->confirmedIntrons) ;
   INTRON *zp = iMax ? arrp (pp->confirmedIntrons, 0, INTRON) : 0 ;
-  
+  const char *feet = "GT_AG" ;
+  const char *feet2 = "GC_AG" ;
+    
   if (run)
     {
       for (ii = 0 ; ii < iMax ; ii++, zp++)
@@ -109,9 +111,9 @@ static int confirmedIntronsCountSites (const PP *pp, int run)
 	    int min = 3 ;
 	    if (! zp->feet[0])
 	      continue ;
-	    else if (!strcmp (zp->feet, "gt_ag"))
+	    else if (!strcasecmp (zp->feet, feet))
 	      min = 1 ;
-	    else if (!strcmp (zp->feet, "gc_ag"))
+	    else if (!strcasecmp (zp->feet, feet2))
 	      min = 2 ;
 	    if (zp->n + zp->nR >= min)
 	      nn++ ;
@@ -219,7 +221,7 @@ static void s2gSamStatsExports (const PP *pp, Array runStats)
   aceOutf (ao, "%s\t%s\tnMismatches_and_InDels\t%ld\t%.6f%%\n", run, METHOD, s0->nMID, (100.0 * s0->nMID)/(s0->nBaseAligned1 + s0->nBaseAligned2 + 0.00000001)) ;
 
   aceOutf (ao, "\n%s\t%s\tnPolyA_sites\t%ld\n", run, METHOD, confirmedPolyAsCountSites (pp, 0)) ;
-  aceOutf (ao, "\n%s\t%s\tSupported_introns\t%ld\n", run, METHOD, confirmedIntronsCountSites (pp, 0)) ;
+  aceOutf (ao, "\n%s\t%s\tSupported_introns\t%ld\n", run, METHOD, confirmedIntronsCountSites (pp, 0, 0)) ;
   aceOutf (ao, "\n%s\t%s\tnDoubleIntrons\t%ld\n", run, METHOD, arrayMax (pp->doubleIntrons)) ;
   aceOutf (ao, "%s\t%s\tIntron_supports\t%ld\t%ld\t%ld\t%.3f\n", run, METHOD
 	   , s0->gt_ag_Support + s0->ct_ac_Support 
@@ -757,7 +759,7 @@ void saRunStatExport (const PP *pp, Array runStats)
 		   ) ;
 	  aceOutf (ao, "%s\tSupported_introns\ti\t%ld\n"
 		   , runNam
-		   , confirmedIntronsCountSites (pp, run)
+		   , confirmedIntronsCountSites (pp, run, up)
 		   ) ;
 	  aceOutf (ao, "%s\tRaw_gt_ag_Support\ti\t%ld\n"
 		   , runNam
