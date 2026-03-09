@@ -134,6 +134,7 @@ static void loadRegulator (const void *vp)
   while (channelGet (pp->plChan, &bb, BB))
     {
       nn++ ;
+      /* long int get_current_rss_kb () ; */
       while  (nn > nMax)
 	{
 	  int nd = channelCount (pp->doneChan) ;
@@ -1789,7 +1790,7 @@ int main (int argc, const char *argv[])
     getCmdLineInt (&argc, argv, "--nB", &(p.nBlocks));
   if (p.nBlocks == 1)
     { nAgents = 1 ; }
-  channelDepth = 1 + p.nBlocks/2 ;
+  channelDepth = 4 ; /* 1 + p.nBlocks/2 ; */
   maxThreads = 128 ;  /* UNIX  max on lmem12 machine */
   getCmdLineInt (&argc, argv, "--max_threads", &maxThreads) ;
   if (maxThreads < 24)
@@ -1865,8 +1866,8 @@ int main (int argc, const char *argv[])
   
   /*****************  Start working ***********************************************/
   t0 = timeNow () ;
-  printf ("##################### %s: Start\t", timeBufShowNow (tBuf0)) ;
-  printf ("\t\tnA=%d nB=%d nT=%d\n", nAgents, p.nBlocks, maxThreads) ;
+  fprintf (stderr, "##################### %s: Start\t", timeBufShowNow (tBuf0)) ;
+  fprintf (stderr, "\t\tnCPU=%d nA=%d nB=%d nT=%d\n", nCPU, nAgents, p.nBlocks, maxThreads) ;
 
   cpuStats = arrayHandleCreate (1024, CpuSTAT, h) ;
   p.runStats = arrayHandleCreate (1024, RunSTAT, h) ;

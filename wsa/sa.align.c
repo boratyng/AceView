@@ -421,7 +421,7 @@ static int alignFormatLeftOverhang (const PP *pp, BB *bb, ALIGN *up, Array dna, 
 		    {
 		      int i, n = 0 ;
 		      if (iMax > 30) iMax = 30 ;
-		      
+		      if (x1 - di < 0 || x1 - di >= arrayMax (dna)) continue ;
 		      cp = arrp (dna, x1 - 2 + di, char) ; /* x1 - 2 =  first unaligned base */
 		      for (i = 0 ; i < dx + di && i < 30 && i < iMax ; i++)
 			n +=  (cp[-i] == sl[iMax - i - 1] ? 1 : 0) ;
@@ -474,7 +474,7 @@ static int alignFormatLeftOverhang (const PP *pp, BB *bb, ALIGN *up, Array dna, 
 		    {
 		      int i, n = 0 ;
 		      if (iMax > 30) iMax = 30 ;
-		      
+		      if (x1 - di < 0 || x1 - di >= arrayMax (dna)) continue ;		      
 		      cp = arrp (dna, x1 - 2 + di, char) ; /* x1 - 2 =  first unaligned base */
 		      for (i = 0 ; i < dx + di && i < 30 && i < iMax ; i++)
 			n +=  (cp[-i] == complementBase(adaptor[i]) ? 1 : 0) ;
@@ -653,7 +653,7 @@ static int alignFormatRightOverhang (const PP *pp, BB *bb, ALIGN *up, Array dna,
 		      ALIGN *vp  ;
 		      int i, n = 0 ;
 		      if (iMax > 30) iMax = 30 ;
-		      
+		      if (x2 - di < 0 || x2 - di >= arrayMax (dna)) continue ;		      
 		      cp = arrp (dna, x2 - di, char) ; /* x2 =  first unaligned base */
 		      for (i = 0 ; i < dx + di && i < iMax ; i++)
 			n +=  (cp[i] == sl[i] ? 1 : 0) ;
@@ -708,7 +708,7 @@ static int alignFormatRightOverhang (const PP *pp, BB *bb, ALIGN *up, Array dna,
 		{
 		  int jj, i, n = 0 ;
 		  if (iMax > 30) iMax = 30 ;
-		  
+		  if (x2 - di < 0 || x2 - di >= arrayMax (dna)) continue ;
 		  cp = arrp (dna, x2 - di, char) ; /* x2 =  first unaligned base */
 		  for (i = 0 ; i < dx + di && i < iMax ; i++)
 		    n +=  (cp[i] == adaptor[i] ? 1 : 0) ;
@@ -1304,6 +1304,7 @@ static void alignAdjustExons (const PP *pp, BB *bb, Array bestAp, Array aa, Arra
   for (int ic = 1 ; ic < arrayMax (bestAp) ; ic++)
     {
       /* adjust   exons */
+      int nvp = 0 ;
       int k = array (bestAp, ic, int) ;
       if (!k) continue ;
       up = vp = arrp (aa, k - 1, ALIGN) ; 
@@ -1352,7 +1353,6 @@ static void alignAdjustExons (const PP *pp, BB *bb, Array bestAp, Array aa, Arra
 	  arrayMax (dnaI) = nAli ;
 	  if (! isDown)
 	    {
-	      int nvp = 0 ;
 	      if (! dnaR)
 		{
 		  dnaR = dnaHandleCopy (dna, h1) ;
@@ -1389,7 +1389,7 @@ static void alignAdjustExons (const PP *pp, BB *bb, Array bestAp, Array aa, Arra
 	      zp.x1 = up->x1 ;
 	      zp.a1 = jj + 1 ;
 	      arrayMax (original) = 0 ;
-	      for (iOriginal = 0, vp = up ; vp->chain == chain || vp->chain == -1 ; vp++, iOriginal++)
+	      for (iOriginal = 0, vp = up ; iOriginal < nvp ; vp++, iOriginal++)
 		{
 		  array (original, iOriginal, ALIGN) = *vp ;
 		  da = vp->a2 - vp->a1 + 1 ;
@@ -1478,8 +1478,8 @@ static void alignAdjustExons (const PP *pp, BB *bb, Array bestAp, Array aa, Arra
 		  alignClipErrorLeft (&zp, pp->errCost) ;
 		  alignClipErrorRight (&zp, pp->errCost) ;
 		  /* remap */
-		  int ja, dda = 0 ;
-		  for (vp = up, ja = 1 ; vp->chain == chain || vp->chain == -1 ; vp++)
+		  int ii, ja, dda = 0 ;
+		  for (vp = up, ja = 1, ii = 0 ; ii < nvp ; ii++, vp++)
 		    {
 		      int dz = keySet (ks, ja)  ;
 		      int j = 0 ;
@@ -1545,14 +1545,14 @@ static void alignAdjustExons (const PP *pp, BB *bb, Array bestAp, Array aa, Arra
 		}
 	      else
 		{ /* reestablish previous coordinates */
-		  for (iOriginal = 0, vp = up ; vp->chain == chain || vp->chain == -1 ; vp++, iOriginal++)
+		  for (iOriginal = 0, vp = up ; iOriginal < nvp ; vp++, iOriginal++)
 		    *vp = array (original, iOriginal, ALIGN) ;
 		}
 	    }
 
 	  /* merge */
 	  int i, k ;
-	  for (k = 0, vp = up ; (k < arrayMax (aa) - 1) && (vp->chain == chain || vp->chain == -1) ; k++, vp++)
+	  for (k = 0, vp = up ; k < nvp - 1 ; k++, vp++)
 	    if (vp[0].chain == chain && vp[1].chain == chain && vp[1].x1 == vp[0].x2 + 1 && vp[1].a1 == vp[0].a2 + 1)
 	      {  /* this happens in rafia */
 		vp[0].x2 = vp[1].x2 ;
@@ -1578,25 +1578,25 @@ static void alignAdjustExons (const PP *pp, BB *bb, Array bestAp, Array aa, Arra
 
 	  /* clean up */
 	  int iMax = arrayMax (aa) ;
-	  for (vp = up, i = k = 0 ; i < iMax ; i++, vp++)
-	    if(vp->chain == chain)
-	      {
-		if (k < i) up[k] = up[i] ;
-		k++ ;
-	      }
-	  arrayMax (aa) = k ;
-	  
+	  if (0)
+	    {
+	      for (vp = up, i = k = 0 ; i < iMax ; i++, vp++)
+		if(vp->chain == chain)
+		  {
+		    if (k < i) up[k] = up[i] ;
+		    k++ ;
+		  }
+	      arrayMax (aa) = k ;
+	    }
 	  if (! isDown)
 	    {
-	      int nvp = 0 ;
-	      int ii, iMax = arrayMax (aa) ;
+	      int ii ;
 	      up = arrayp (aa, 0, ALIGN) ;
-	      for (vp = up, ii = 0 ; ii < iMax ; vp++)
+	      for (vp = up, ii = 0 ; ii < nvp ; ii++, vp++)
 		{
 		  int dummy = vp->a1 ; vp->a1 = vp->a2 ; vp->a2 = dummy ;
 		  dummy = vp->x1 ; vp->x1 = vp->x2 ; vp->x2 = dummy ;
 		  vp->x1 = lnShort - vp->x1 + 1 ; vp->x2 = lnShort - vp->x2 + 1 ;
-		  nvp++ ;
 		  
 		  /* flip the error positions */
 		  if (vp->nErr)
@@ -2041,7 +2041,7 @@ static void alignSelectBestDynamicPath (const PP *pp, BB *bb, Array aaa, Array a
       alignAdjustIntrons (pp, bb, bestAp, aa) ;
       iMax = alignLocateChains1 (bestAp, aa, myRead) ;
       /* adjust exons */
-      alignAdjustExons (pp, bb, bestAp, aa, dna, maxJump, maxJump2) ;
+      if (0) alignAdjustExons (pp, bb, bestAp, aa, dna, maxJump, maxJump2) ;
       iMax = alignLocateChains (bestAp, aa, myRead) ;
       
       /* Compute the clean chain score */
