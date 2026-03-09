@@ -19,7 +19,7 @@ NAME = MAC_X
 # in the MAGIC demo if we optimize on the MAC, it seems to be a structire alignment issue
 
 COMPILER = cc  -DACEDB4 -I/usr/X11R6/include -DDARWIN  -DALIGNMENT_64_BIT  -Wno-unused-value
-LINKER = cc -L/usr/X11R6/lib
+LINKER = g++ -L/usr/X11R6/lib
 
 LIBS = -lm 
 

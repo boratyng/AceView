@@ -12,7 +12,7 @@
  * This module extends seed hits to full alignments
  */
 
-/* #define ARRAY_CHECK */
+#define ARRAY_CHECK
 
 
 #include "sa.h"

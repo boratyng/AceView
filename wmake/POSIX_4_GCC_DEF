@@ -17,7 +17,7 @@
 
 NAME = POSIX
 COMPILER = gcc -g -DACEDB4
-LINKER = gcc
+LINKER = g++
 
 LIBS = -lm
 RPCGEN_FLAGS = -b -I -K -1

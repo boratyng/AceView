@@ -17,7 +17,7 @@
 NAME = MAC_X
 #COMPILER = cc -g -DACEDB4 -I/usr/X11R6/include
 COMPILER = cc -g -DACEDB4 -I/usr/X11R6/include -DDARWIN -DALIGNMENT_64_BIT  -Wno-unused-value
-LINKER = cc -L/usr/X11R6/lib
+LINKER = g++ -L/usr/X11R6/lib
 
 LIBS = -lm 
 

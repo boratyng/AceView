@@ -106,6 +106,10 @@ setenv SV     v73.81.18M.e4.W.mars5    # favor the introns seeds by contructing 
 setenv SVlast v73.81.18M.e4.W.mars5    # use 3/2 n_cpus, hence 176 on the farm with 2 nodes, then we ran out of RAM
 setenv SV     v74.81.18M.e4.W.mars8    # use 3/2n_cpus per nonde hence 32 on the farm
 setenv SVlast v74.81.18M.e4.W.mars8
+setenv SV     v75.81.18M.e4.W.mars8    # use    n_cpus per nonde hence 32 on the farm
+setenv SVlast v75.81.18M.e4.W.mars8
+setenv SV     v76.81.18M.e4.W.mars8    # use 2   n_cpus per nonde hence 32 on the farm
+setenv SVlast v76.81.18M.e4.W.mars8
 
 if ($SV == $SVlast) then
   \cp  /home/mieg/ace/bin.LINUX_4_OPT/sortalign bin/sortalign.$SV
@@ -895,7 +899,7 @@ foreach run ($runs)
       if (-e Fasta/$run/$run.reverse.fastq.gz) set read_2=Fasta/$run/$run.reverse.fastq.gz
       if (-e Fasta/$run/$run.forward.fasta.gz) set read_1=Fasta/$run/$run.forward.fasta.gz
       if (-e Fasta/$run/$run.reverse.fasta.gz) set read_2=Fasta/$run/$run.reverse.fasta.gz
-      if ($method == 011_SortAlignG3R5 && -e Fasta/$run/$run.sra.fasta.gz) set read_1=Fasta/$run/$run.sra.fasta.gz
+      if ($method == 011_SortAlignG6R3 && -e Fasta/$run/$run.sra.fasta.gz) set read_1=Fasta/$run/$run.sra.fasta.gz
       if ($method == 012_SortAlignG3R3 && -e Fasta/$run/$run.sra.fasta.gz) set read_1=Fasta/$run/$run.sra.fasta.gz
       if ($method == 013_SortAlignG3R1 && -e Fasta/$run/$run.sra.fasta.gz) set read_1=Fasta/$run/$run.sra.fasta.gz
       if ($method == 014_SortAlignG3R3.g && -e Fasta/$run/$run.sra.fasta.gz) set read_1=Fasta/$run/$run.sra.fasta.gz
@@ -975,6 +979,7 @@ foreach species (any)
     cat $e | grep TIMING | gawk -F '\t' '{n=split($5,aa,":");if(n==3)s=3600*aa[1]+60*aa[2]+aa[3];else s=60*aa[1]+aa[2];printf("%d\t",s);print;}' | sort -k 1nr | tail -1 > _t
     set n=`cat _t | gawk '/TIMING/{n++}END{print n+0}'`
     set n=`cat $e | gawk '/Killed/{n=-1;}END{print n}' n=$n`
+    set n=`cat $e | gawk '/exited/{n=-1;}END{print n}' n=$n`
     if ($n == 1) then
       set wallT=`cat _t | gawk -F '\t' '{print $6}'`
       set cpu=`cat _t | gawk -F '\t' '{print $8+$10}'`
