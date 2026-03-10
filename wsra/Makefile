@@ -44,14 +44,12 @@ $(NGSSDK)/README:
 	$(CC) $(CFLAGS) -c -o $@ $<
 
 %.o: %.cpp
-	$(CXX) -std=c++11 -stdlib=libc++ \
-		-D_LIBCPP_DISABLE_VISIBILITY_ANNOTATIONS \
-		-D__STDC_LIMIT_MACROS \
-		-include cstddef \
-		-include cstdlib \
+	$(CXX) $(CXXFLAGS) -D__STDC_LIMIT_MACROS -D_LIBCPP_DISABLE_VISIBILITY_ANNOTATIONS \
+		-std=c++11 -stdlib=libc++ \
+		-isystem $(STLINC) \
+		-include cstddef -include cstdlib \
 		-Ings-sdk.3.2.1-mac-arm/include \
 		-Ings-sdk.3.2.1-mac-arm/include/ncbi-vdb \
-		-I$(STLINC) \
 		-c -o $@ $<
 
 
