@@ -43,9 +43,17 @@ $(NGSSDK)/README:
 %.o: %.c
 	$(CC) $(CFLAGS) -c -o $@ $<
 
-# This is the important rule for .cpp files
 %.o: %.cpp
-	$(CXX) $(CXXFLAGS) -I$(NGSSDK)/include -I$(NGSSDK)/include/ncbi-vdb -I$(STLINC) -c -o $@ $<
+	$(CXX) -std=c++11 -stdlib=libc++ \
+		-D_LIBCPP_DISABLE_VISIBILITY_ANNOTATIONS \
+		-D__STDC_LIMIT_MACROS \
+		-include cstddef \
+		-include cstdlib \
+		-Ings-sdk.3.2.1-mac-arm/include \
+		-Ings-sdk.3.2.1-mac-arm/include/ncbi-vdb \
+		-I$(STLINC) \
+		-c -o $@ $<
+
 
 # Build the library
 libsraread.a: sra_read.o
