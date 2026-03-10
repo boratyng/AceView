@@ -1,3 +1,4 @@
+#include <stdlib.h>
 #include <NGS.hpp>
 #include <ngs/ReadCollection.hpp>
 #include <ngs/ReadIterator.hpp>
