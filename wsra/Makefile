@@ -1,23 +1,28 @@
 # Makefile
 
 ifeq ($(shell uname),Darwin)
-	STLINC = /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1
+    STLINC = /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1
+    UNAME_ARCH = $(shell uname -m)
+    ifeq ($(UNAME_ARCH),aarch66)
+        ARCH = arm
+    else ifeq ($(UNAME_ARCH),aarch64)
+        ARCH = arm
+    else ifeq ($(UNAME_ARCH),arm64)
+        ARCH = arm
+    else
+        ARCH = x86
+    endif
+    OS = mac-$(ARCH)
 
-        UNAME_ARCH = $(shell uname -m)
-	ifeq ($(UNAME_ARCH),aarch66)
-		ARCH = arm
-	else ifeq ($(UNAME_ARCH),arm64)
-                ARCH = arm
-        else
-		ARCH = x86
-	endif
-	OS = mac-$(ARCH)
+    # Fix for NGS SDK + macOS C++ header conflict
+    CXXFLAGS += -std=c++11 -stdlib=libc++ -D_LIBCPP_DISABLE_VISIBILITY_ANNOTATIONS
+    CXXFLAGS += -include cstddef -include cstdlib
+
 else
-	GCC_VERSION = "$(shell g++ --version | awk '/^g++/ {split($NF, a, "."); print a[1];}')"
-	STLINC = /usr/include/c++/$(GCC_VERSION)
-	OS = linux
+    GCC_VERSION = "$(shell g++ --version | awk '/^g++/ {split($$NF, a, "."); print a[1];}')"
+    STLINC = /usr/include/c++/$(GCC_VERSION)
+    OS = linux
 endif
-
 
 # NGS-SDK version
 VERSION = 3.2.1
