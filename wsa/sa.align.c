@@ -1396,7 +1396,7 @@ static void alignAdjustExons (const PP *pp, BB *bb, Array bestAp, Array aaa, int
       arrayMax (aa) = 0 ;
       for ( jj = 0 ; k < kMax && up->chain == chain ; k++, up++)
 	{
-	  vp = arrayp (aa, jj, ALIGN) ;
+	  vp = arrayp (aa, jj++, ALIGN) ;
 	  *vp = *up ;
 	}
 
