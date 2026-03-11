@@ -783,6 +783,7 @@ static void alignFormatErrors (const PP *pp, BB *bb, ALIGN *up, Array dna, Array
    {
       xShort = ep->iShort + 1 ;
       xLong = ep->iLong + 1 ;
+      int xLongR = arrayMax (dnaG) - xLong + 1 ; 
 
       if (xShort <= 0 || xLong <= 0 || xShort >= arrayMax (dna))
 	continue ;
@@ -803,7 +804,7 @@ static void alignFormatErrors (const PP *pp, BB *bb, ALIGN *up, Array dna, Array
 			  ) ;
 	      vtxtPrintf (txt2,"%s%d:%c%c>oo"
 			  , sep
-			  , isUp ? xLong - 1 : xLong - 1
+			  , isUp ? xLongR - 1 : xLong - 1
 			  , isUp ? dnaDecodeChar[(int)complementBase(cc1a)] : dnaDecodeChar[(int)cc1a]
 			  , isUp ? dnaDecodeChar[(int)complementBase(cc2a)] : dnaDecodeChar[(int)cc2a]
 			  ) ;
@@ -815,7 +816,6 @@ static void alignFormatErrors (const PP *pp, BB *bb, ALIGN *up, Array dna, Array
 	case ERREUR:
 	  {
 	    char ccS, ccL, ccSR, ccLR ;
-	    /* int xLongR = arrayMax (dnaG) - xLong + 1 ; */
 	    
 	    ccS = ep->baseShort ;
 	    ccL = ep->baseLong ;
@@ -836,8 +836,8 @@ static void alignFormatErrors (const PP *pp, BB *bb, ALIGN *up, Array dna, Array
 
 	    vtxtPrintf(txt2, "%s%d:%c>%c"
 		       , sep
-		       , xLong 
-		       , ccL, ccSR
+		       , isUp ? xLongR : xLong
+		       , ccLR, ccSR
 		       ) ;
 	  }  
 	  break ;
@@ -859,9 +859,9 @@ static void alignFormatErrors (const PP *pp, BB *bb, ALIGN *up, Array dna, Array
 			) ;
 	    vtxtPrintf (txt2,"%s%d:%s%c"
 			, sep
-			, xLong 
+		       , isUp ? xLongR : xLong
 			, ss 
-			, ccL 
+			, ccLR 
 			) ;
 	    
 	  }
@@ -889,9 +889,9 @@ static void alignFormatErrors (const PP *pp, BB *bb, ALIGN *up, Array dna, Array
 			) ;
 	    vtxtPrintf (txt2, "%s%d:%s%c%c"
 			, sep
-			, xLong 
+			, isUp ? xLongR : xLong
 			, ss 
-			, cc1L, cc2L
+			, cc1LR, cc2LR
 			) ;
 	    
 	  }
@@ -922,9 +922,9 @@ static void alignFormatErrors (const PP *pp, BB *bb, ALIGN *up, Array dna, Array
 			) ;
 	    vtxtPrintf (txt2, "%s%d:%s%c%c%c"
 			, sep
-			, xLong 
+			, isUp ? xLongR : xLong
 			, ss 
-			, cc1L, cc2L, cc3L
+			, cc1LR, cc2LR, cc3LR
 			) ;
 	  }
 	  break ;
@@ -946,7 +946,7 @@ static void alignFormatErrors (const PP *pp, BB *bb, ALIGN *up, Array dna, Array
 			) ;
 	    vtxtPrintf (txt2, "%s%d:%s%c"
 			, sep
-			, xLong
+			, isUp ? xLongR : xLong
 			, ss 
 			, cc1SR
 			) ;
@@ -978,7 +978,7 @@ static void alignFormatErrors (const PP *pp, BB *bb, ALIGN *up, Array dna, Array
 			) ;
 	    vtxtPrintf (txt2, "%s%d:%s%c%c"
 			, sep
-			, xLong
+			, isUp ? xLongR : xLong
 			, ss 
 			, cc1SR, cc2SR
 			) ;
@@ -1014,7 +1014,7 @@ static void alignFormatErrors (const PP *pp, BB *bb, ALIGN *up, Array dna, Array
 			) ;
 	    vtxtPrintf (txt2, "%s%d:%s%c%c%c"
 			, sep
-			, xLong
+			, isUp ? xLongR : xLong
 			, ss 
 			, cc1SR, cc2SR, cc3SR
 			) ;
@@ -1025,7 +1025,7 @@ static void alignFormatErrors (const PP *pp, BB *bb, ALIGN *up, Array dna, Array
 	default:
 	  vtxtPrintf(txt2, "%s%d:%c>%c"
 		     , sep
-		     , xLong 
+		     , isUp ? xLongR : xLong
 		     , 'Z', 'Z'
 		     ) ;
 	  
