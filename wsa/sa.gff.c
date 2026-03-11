@@ -345,7 +345,7 @@ static int refineGeneBoxes (Array bb, Array aa, KEYSET borders)
 	    {
 	      for (jj = ii, vp = up ; jj < ii + n ; jj++, vp++)
 		{
-		  if (vp->flag >= 2)  { vp->friends = n2 < 256 ? n2 : 255 ; vp->flag |= 0x8 ; } /* ambiguous */
+		  if (vp->flag >= 2)  { vp->friends = n2 <= 254 ? n2 : 254 ; vp->flag |= 0x8 ; } /* ambiguous */
 		  else  vp->flag = 0 ;
 		}
 	    }
