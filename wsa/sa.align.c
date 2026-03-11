@@ -1291,8 +1291,137 @@ static void alignAdjustIntrons (const PP *pp, BB *bb, Array bestAp, Array aa)
 } /* alignAdjustIntrons */
 
 /**************************************************************/
+/**************************************************************/
 
-static void alignAdjustExons (const PP *pp, BB *bb, Array bestAp, Array aa, Array dna, int maxJump, int maxJump2)
+static void alignAdjustExonChainDo (const PP *pp, BB *bb, Array bestAp, Array aaa, int myRead, Array dna, int maxJump, int maxJump2)
+{
+  return ;
+} /* alignAdjustExonChainDo */
+
+/**************************************************************/
+static void alignAdjustExonChainFlip (Array aa, int lnShort)
+{
+  ALIGN *up ;
+  int dummy, ii = 0, iMax = arrayMax (aa) ;
+  
+   /* flip each exon */
+  for (ii = 0, up = arrp (aa, 0, ALIGN) ; ii < iMax ; ii++, up++)
+    {
+      dummy = up->a1 ; up->a1 = up->a2 ; up->a2 = dummy ;
+      dummy = up->x1 ; up->x1 = up->x2 ; up->x2 = dummy ;
+
+      up->x1 = lnShort - up->x1 + 1 ;
+      up->x2 = lnShort - up->x2 + 1 ;
+    }
+
+  /* flip the order of the exons */
+  for (ii = 0, up = arrp (aa, 0, ALIGN) ; ii < iMax/2 ; ii++)
+    {
+      ALIGN wp = up[ii] ;
+      up[ii] = up[iMax - ii - 1] ;
+      up[iMax -ii - 1] = wp ;
+    }
+  return ;
+} /* alignAdjustExonChainFlip */
+
+/**************************************************************/
+	      
+static void alignAdjustExonChain (const PP *pp, BB *bb, Array bestAp, Array aa, int myRead, Array dna, int maxJump, int maxJump2)
+{
+  ALIGN *up = arrayp (aa, 0, ALIGN) ;
+  BOOL isDown = up->a1 <= up->a2 ? TRUE : FALSE ;
+  
+  /* count all errors */
+  int nErr = 0 ;
+  int nAli = 0 ;
+  int lnShort = arrayMax (dna) ;
+  int ii = 0, iMax = arrayMax (aa) ;
+
+  for (ii = 0, up = arrp (aa, 0, ALIGN) ; ii < iMax ; ii++, up++)
+    {
+      int da = up->a2 - up->a1 ;
+      up->nErr = up->errors ? arrayMax (up->errors) : 0 ;
+      nErr += up->nErr ;
+      nAli += da > 0 ? da + 1 : -da + 1 ;
+    }
+  
+  if (! nErr && nAli < lnShort)
+    return ;
+
+  AC_HANDLE h1 = ac_new_handle () ;
+
+  if (! isDown)
+    { /* flip the chain so that it aligns on the plus strand */
+      Array dnaR = dnaHandleCopy (dna, h1) ;
+      dna = dnaR ;
+      reverseComplement (dnaR) ;
+      alignAdjustExonChainFlip (aa, lnShort) ;
+    }
+
+  /* analyse and edit the chain */
+  alignAdjustExonChainDo (pp, bb, bestAp, aa, myRead, dna, maxJump, maxJump2) ;
+  
+  if (! isDown)
+    { /* flip back the fixed chain */
+      alignAdjustExonChainFlip (aa, lnShort) ;
+    }
+  
+  ac_free (h1) ;  
+} /* alignAdjustExonChain  */
+
+/**************************************************************/
+
+static void alignAdjustExons (const PP *pp, BB *bb, Array bestAp, Array aaa, int myRead, Array dna, int maxJump, int maxJump2)
+{
+  ALIGN *up, *vp ;
+  int chromA = 0, chain = 0 ;
+  AC_HANDLE h1 = ac_new_handle () ;
+  Array dnaR = 0 ;
+  Array dnaG = 0 ;
+  Array aaOld = arrayHandleCopy (aaa, h1) ;
+  Array aa = arrayHandleCreate (32, ALIGN, h1) ;
+  
+  arrayMax (aaa) = 0 ;
+  int icMax = alignLocateChains1 (bestAp, aaOld, myRead) ;
+
+  for (int ic = 1 ; ic < icMax ; ic++)
+    {
+      /* create a chain specific array */
+      int jj = 0, k = array (bestAp, ic, int) ;
+      if (!k) continue ;
+      k = k - 1 ;
+      up = arrp (aaOld, k, ALIGN) ;
+      int chain = up->chain ;
+      int kMax = arrayMax (aaOld) ;
+      arrayMax (aa) = 0 ;
+      for ( jj = 0 ; k < kMax && up->chain == chain ; k++, up++)
+	{
+	  vp = arrayp (aa, jj, ALIGN) ;
+	  *vp = *up ;
+	}
+
+      /* analyse and edit the chain */
+      alignAdjustExonChain (pp, bb, bestAp, aa, myRead, dna, maxJump, maxJump2) ;
+
+      /* collate the results in aaa */
+      jj = arrayMax (aa) ;
+      if (jj)
+	{
+	  k = arrayMax (aaa) ;
+	  up = arrayp (aaa, k + jj, ALIGN) ; /* make room */
+	  up = arrayp (aaa, jj, ALIGN) ;
+	  vp = arrp (aa, 0, ALIGN) ;
+	  memcpy (up, vp, jj * sizeof (ALIGN)) ;
+	}
+    }
+  ac_free (h1) ;
+  return ;
+} /* alignAdjustExons */
+
+/**************************************************************/
+/**************************************************************/
+
+static void alignAdjustExonsOld (const PP *pp, BB *bb, Array bestAp, Array aa, Array dna, int maxJump, int maxJump2)
 {
   ALIGN *up, *vp ;
   int chromA = 0, chain = 0 ;
@@ -2039,9 +2168,8 @@ static void alignSelectBestDynamicPath (const PP *pp, BB *bb, Array aaa, Array a
     {
       /* adjust introns */
       alignAdjustIntrons (pp, bb, bestAp, aa) ;
-      iMax = alignLocateChains1 (bestAp, aa, myRead) ;
       /* adjust exons */
-      if (0) alignAdjustExons (pp, bb, bestAp, aa, dna, maxJump, maxJump2) ;
+      if (1) alignAdjustExons (pp, bb, bestAp, aa, myRead, dna, maxJump, maxJump2) ;
       iMax = alignLocateChains (bestAp, aa, myRead) ;
       
       /* Compute the clean chain score */
