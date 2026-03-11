@@ -1353,7 +1353,7 @@ static void alignAdjustExonChain (const PP *pp, BB *bb, Array bestAp, Array aa, 
   if (! isDown)
     { /* flip the chain so that it aligns on the plus strand */
       Array dnaR = dnaHandleCopy (dna, h1) ;
-      dna = dnaR ;
+      if(0) dna = dnaR ;
       reverseComplement (dnaR) ;
       alignAdjustExonChainFlip (aa, lnShort) ;
     }
@@ -1380,7 +1380,7 @@ static void alignAdjustExons (const PP *pp, BB *bb, Array bestAp, Array aaa, int
   Array dnaG = 0 ;
   Array aaOld = arrayHandleCopy (aaa, h1) ;
   Array aa = arrayHandleCreate (32, ALIGN, h1) ;
-  
+
   arrayMax (aaa) = 0 ;
   int icMax = alignLocateChains1 (bestAp, aaOld, myRead) ;
 
@@ -1401,7 +1401,7 @@ static void alignAdjustExons (const PP *pp, BB *bb, Array bestAp, Array aaa, int
 	}
 
       /* analyse and edit the chain */
-      alignAdjustExonChain (pp, bb, bestAp, aa, myRead, dna, maxJump, maxJump2) ;
+      if (1) alignAdjustExonChain (pp, bb, bestAp, aa, myRead, dna, maxJump, maxJump2) ;
 
       /* collate the results in aaa */
       jj = arrayMax (aa) ;
@@ -1409,9 +1409,15 @@ static void alignAdjustExons (const PP *pp, BB *bb, Array bestAp, Array aaa, int
 	{
 	  k = arrayMax (aaa) ;
 	  up = arrayp (aaa, k + jj, ALIGN) ; /* make room */
-	  up = arrayp (aaa, jj, ALIGN) ;
+	  up = arrayp (aaa, k, ALIGN) ;
 	  vp = arrp (aa, 0, ALIGN) ;
-	  memcpy (up, vp, jj * sizeof (ALIGN)) ;
+	  if (1)
+	    memcpy (up, vp, jj * sizeof (ALIGN)) ;
+	  else
+	    {
+	      for (int j = 0 ; j < jj ; j++)
+		array (aaa, k++, ALIGN) = array (aa, j, ALIGN) ;
+	    }
 	}
     }
   ac_free (h1) ;
