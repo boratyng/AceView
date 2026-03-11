@@ -45,11 +45,13 @@ $(NGSSDK)/README:
 
 %.o: %.cpp
 	$(CXX) $(CXXFLAGS) -D__STDC_LIMIT_MACROS -D_LIBCPP_DISABLE_VISIBILITY_ANNOTATIONS \
-		-std=c++11 -stdlib=libc++ \
+		-std=c++11 \
 		-isystem $(STLINC) \
 		-include cstddef -include cstdlib \
 		-Ings-sdk.3.2.1-mac-arm/include \
 		-Ings-sdk.3.2.1-mac-arm/include/ncbi-vdb \
+		-Ings-sdk.3.2.1-linux/include \
+		-Ings-sdk.3.2.1-linux/include/ncbi-vdb \
 		-c -o $@ $<
 
 
