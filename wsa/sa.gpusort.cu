@@ -165,6 +165,23 @@ void saGPUMatchHits(GPUIndex* idx, CW** words, long int* sizes,
         end = std::chrono::high_resolution_clock::now();
         std::cerr << "Found matching seeds " << i << " in "  << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << "ms" << std::endl;
 
+        /* for debugging, make sure that upper_bound finds what we need */
+        auto word_it = word_vec.begin();
+	auto idx_it = upper_it.begin();
+	for (int kk=0;kk < 10;kk++,word_it+=20,idx_it+=20) {
+            if (idx_it != upper_it.end()) {
+		CW w = *word_it;
+		//auto ind = index_vecs[i].begin() + *idx_it;
+                CW d = index_vecs[i][*idx_it];
+		//CW dd = index_vecs[i][*idx_it - 1];
+                std::cerr << "seeds:\t" << w.seed << "\t"
+                          << d.seed << "\t"
+                          << *idx_it
+                          << std::endl;
+            }
+	}
+
+
 
         /* these may come handy */
         start = std::chrono::high_resolution_clock::now();
